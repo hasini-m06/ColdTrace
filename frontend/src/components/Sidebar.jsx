@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { getHistory } from '../services/api';
 import { Activity, Thermometer, AlertTriangle, RefreshCw } from 'lucide-react';
 
-const Sidebar = ({ summary, location, onRefresh, loading }) => {
+const Sidebar = ({ summary, location, onRefresh, loading, currentView, onViewChange }) => {
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
@@ -23,6 +23,41 @@ const Sidebar = ({ summary, location, onRefresh, loading }) => {
       <div className="header">
         <h1>ColdTrace</h1>
         <p>Predictive Cold Chain Monitoring</p>
+      </div>
+
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+        <button 
+          onClick={() => onViewChange('map')}
+          style={{ 
+            flex: 1, 
+            padding: '8px', 
+            borderRadius: '6px', 
+            border: 'none', 
+            background: currentView === 'map' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+            color: currentView === 'map' ? '#ffffff' : '#94a3b8',
+            cursor: 'pointer',
+            fontWeight: 600,
+            transition: 'background 0.2s'
+          }}
+        >
+          Live Map
+        </button>
+        <button 
+          onClick={() => onViewChange('officials')}
+          style={{ 
+            flex: 1, 
+            padding: '8px', 
+            borderRadius: '6px', 
+            border: 'none', 
+            background: currentView === 'officials' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+            color: currentView === 'officials' ? '#ffffff' : '#94a3b8',
+            cursor: 'pointer',
+            fontWeight: 600,
+            transition: 'background 0.2s'
+          }}
+        >
+          Officials Hub
+        </button>
       </div>
 
       <div className="stats-grid">

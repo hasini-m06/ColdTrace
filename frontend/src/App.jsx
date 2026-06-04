@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MapComponent from './components/Map';
 import Sidebar from './components/Sidebar';
+import OfficialsDashboard from './components/OfficialsDashboard';
 import { getRiskScores, getDashboardSummary, refreshData } from './services/api';
 
 function App() {
@@ -8,6 +9,7 @@ function App() {
   const [summary, setSummary] = useState({ total: 0, red: 0, amber: 0, green: 0 });
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState('map'); // 'map' or 'officials'
 
   const loadData = async () => {
     setLoading(true);
@@ -50,13 +52,19 @@ function App() {
         location={selectedLocation} 
         onRefresh={handleRefresh}
         loading={loading}
+        currentView={currentView}
+        onViewChange={setCurrentView}
       />
       <div className="map-container">
-        <MapComponent 
-          locations={locations} 
-          onSelectLocation={setSelectedLocation}
-          selectedId={selectedLocation?.id}
-        />
+        {currentView === 'map' ? (
+          <MapComponent 
+            locations={locations} 
+            onSelectLocation={setSelectedLocation}
+            selectedId={selectedLocation?.id}
+          />
+        ) : (
+          <OfficialsDashboard />
+        )}
       </div>
     </div>
   );

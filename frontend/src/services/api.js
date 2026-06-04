@@ -17,6 +17,11 @@ export const getDashboardSummary = async () => {
     return response.data;
 };
 
+export const getAlerts = async () => {
+    const response = await axios.get(`${API_URL}/alert-status`);
+    return response.data;
+};
+
 export const refreshData = async () => {
     const response = await axios.post(`${API_URL}/refresh`);
     return response.data;

@@ -35,9 +35,9 @@ const MapComponent = ({ locations, onSelectLocation, selectedId }) => {
               fillColor: color,
               color: isSelected ? '#ffffff' : color,
               weight: isSelected ? 3 : 0,
-              fillOpacity: loc.score > 50 ? 0.9 : 0.6,
+              fillOpacity: loc.score > 50 ? 0.9 : 0.4,
             }}
-            radius={isSelected ? 10 : (loc.score > 70 ? 8 : (loc.score > 50 ? 6 : 3))}
+            radius={isSelected ? 10 : (loc.score > 70 ? 8 : (loc.score > 50 ? 6 : 1.5))}
             eventHandlers={{
               click: () => onSelectLocation(loc),
             }}
