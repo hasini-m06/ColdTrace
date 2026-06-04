@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+requests
+apscheduler
+scikit-learn
+pandas
+numpy
+imbalanced-learn
+joblib
+pyyaml
+beautifulsoup4
