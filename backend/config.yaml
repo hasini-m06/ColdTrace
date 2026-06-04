@@ -1,0 +1,18 @@
+app:
+  schedule_interval_hours: 6
+  region: "Karnataka"
+  bounds:
+    south: 11.5
+    west: 74.5
+    north: 15.5
+    east: 78.5
+
+alerts:
+  score_threshold: 85
+  email_recipients:
+    - "admin@example.com"
+  sms_recipients:
+    - "+1234567890"
+
+model:
+  target_recall: 0.8
