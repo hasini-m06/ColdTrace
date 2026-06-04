@@ -34,10 +34,10 @@ const MapComponent = ({ locations, onSelectLocation, selectedId }) => {
             pathOptions={{
               fillColor: color,
               color: isSelected ? '#ffffff' : color,
-              weight: isSelected ? 3 : 1,
-              fillOpacity: 0.8,
+              weight: isSelected ? 3 : 0,
+              fillOpacity: loc.score > 50 ? 0.9 : 0.6,
             }}
-            radius={isSelected ? 10 : 6}
+            radius={isSelected ? 10 : (loc.score > 70 ? 8 : (loc.score > 50 ? 6 : 3))}
             eventHandlers={{
               click: () => onSelectLocation(loc),
             }}

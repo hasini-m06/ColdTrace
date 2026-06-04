@@ -26,8 +26,8 @@ def run_cycle():
             
     db_locations = fetch_all("SELECT * FROM locations")
     
-    # For demo purposes, we limit processing to 50 locations to avoid API rate limits and timeouts
-    db_locations = db_locations[:50]
+    # Increase limit to 500 to show a large number of centres on the map
+    db_locations = db_locations[:500]
     
     all_wastage = fetch_hmis_wastage()
     all_outages = fetch_power_outage()
