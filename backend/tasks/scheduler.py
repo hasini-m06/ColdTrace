@@ -32,6 +32,8 @@ def run_cycle():
     all_wastage = fetch_hmis_wastage()
     all_outages = fetch_power_outage()
     
+    import numpy as np
+    
     temp_deltas = {}
     current_temps = {}
     for loc in db_locations:
@@ -39,7 +41,7 @@ def run_cycle():
         if delta is not None:
             temp_deltas[loc['id']] = delta
             current_temps[loc['id']] = ct
-        time.sleep(0.1)
+        time.sleep(0.02)
             
     print("Training ML model...")
     train_initial_model(db_locations, all_wastage, all_outages, temp_deltas)
@@ -52,7 +54,7 @@ def run_cycle():
         temp_delta = temp_deltas.get(loc['id'], 5.0)
         ct = current_temps.get(loc['id'], 30.0)
         
-        equip_score = 48
+        equip_score = np.random.randint(20, 100)
         
         features = extract_features(loc, ct, temp_delta, wastage, outage, equip_score)
         score, top_feats = predict_risk(features)

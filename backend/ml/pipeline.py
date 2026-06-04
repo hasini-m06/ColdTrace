@@ -5,7 +5,6 @@ import numpy as np
 from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from imblearn.over_sampling import SMOTE
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "model.joblib")
 
@@ -46,10 +45,12 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
         outage = all_outages.get(dist, median_outage)
         temp_delta = all_temp_deltas.get(loc['id'], 5.0)
         
-        # Base features
-        features = extract_features(loc, 30.0, temp_delta, wastage, outage, 48)
+        equip_score = np.random.randint(20, 100)
         
-        risk_score = (wastage * 10) + (temp_delta * 0.1) + (outage * 0.2)
+        # Base features
+        features = extract_features(loc, 30.0, temp_delta, wastage, outage, equip_score)
+        
+        risk_score = (wastage * 10) + (temp_delta * 0.1) + (outage * 0.2) + (features['days_since_last_maintenance'] * 0.02) - (equip_score * 0.01)
         risk_score += np.random.normal(0, 0.5)
         all_scores.append(risk_score)
         location_data.append(features)
