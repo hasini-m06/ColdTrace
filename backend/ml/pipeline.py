@@ -66,20 +66,13 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
     
     if sum(y) == 0:
         # Force some positives if none were created
-        indices = np.random.choice(len(y), size=int(0.1*len(y)), replace=False)
+        indices = np.random.choice(len(y), size=int(0.15*len(y)), replace=False)
         y[indices] = 1
 
-    # Address class imbalance
-    smote = SMOTE(random_state=42)
-    # SMOTE needs > 1 samples in minority class
-    if sum(y) > 5 and len(y) - sum(y) > 5:
-        X_res, y_res = smote.fit_resample(df, y)
-    else:
-        X_res, y_res = df, y
-
-    # Train Random Forest
-    rf = RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42)
-    rf.fit(X_res, y_res)
+    # Train Random Forest without SMOTE or artificial class weights 
+    # to preserve the natural predicted probability distribution
+    rf = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf.fit(df, y)
     
     joblib.dump(rf, MODEL_PATH)
     print(f"Model trained and saved to {MODEL_PATH}")
