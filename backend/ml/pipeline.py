@@ -37,6 +37,9 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
     median_wastage = np.median(list(all_wastage.values())) if all_wastage else 0.05
     median_outage = np.median(list(all_outages.values())) if all_outages else 2
     
+    # Calculate initial risk scores for all locations
+    all_scores = []
+    location_data = []
     for loc in locations:
         dist = loc['district'].lower()
         wastage = all_wastage.get(dist, median_wastage)
@@ -46,21 +49,16 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
         # Base features
         features = extract_features(loc, 30.0, temp_delta, wastage, outage, 48)
         
-        # Synthetic probability for breach (to train the RF)
-        # High wastage, high temp delta, high outages = high risk
         risk_score = (wastage * 10) + (temp_delta * 0.1) + (outage * 0.2)
-        
-        # Add some noise
         risk_score += np.random.normal(0, 0.5)
+        all_scores.append(risk_score)
+        location_data.append(features)
         
-        # Threshold for synthetic breach (approx 15% positive class)
-        target = 1 if risk_score > np.percentile([risk_score], 85) else 0 # this is a rough approximation
-        
-        # Better synthetic target logic:
-        # just say if risk_score > 1.5 then 1 else 0, we'll calibrate it.
-        target = 1 if risk_score > 1.2 else 0
-        
-        data.append(features)
+    threshold = np.percentile(all_scores, 85) if all_scores else 1.5
+
+    for i, score in enumerate(all_scores):
+        target = 1 if score > threshold else 0
+        data.append(location_data[i])
         targets.append(target)
         
     df = pd.DataFrame(data)
