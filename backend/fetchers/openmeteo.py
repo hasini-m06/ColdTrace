@@ -10,18 +10,20 @@ def fetch_temperature_forecast(lat: float, lng: float):
         "forecast_days": 3,
         "timezone": "Asia/Kolkata"
     }
-    response = requests.get(url, params=params)
-    if response.status_code != 200:
-        print(f"Error fetching OpenMeteo: {response.text}")
-        return None, None
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
         
-    data = response.json()
-    hourly_temps = data.get("hourly", {}).get("temperature_2m", [])
-    if not hourly_temps:
-        return None, None
+        # Get current temp
+        current_temp = data['hourly']['temperature_2m'][0]
         
-    current_temp = hourly_temps[0]
-    max_48h_temp = max(hourly_temps[:48])
-    delta = max_48h_temp - current_temp
-    
-    return current_temp, delta
+        # Get max temp over next 48h
+        next_48h = data['hourly']['temperature_2m'][:48]
+        max_temp = max(next_48h)
+        
+        delta = max_temp - current_temp
+        return current_temp, delta
+    except Exception as e:
+        print(f"Error fetching weather for {lat},{lng}: {e}")
+        return None, None
