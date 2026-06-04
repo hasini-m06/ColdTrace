@@ -14,7 +14,8 @@ def fetch_phc_locations():
     """
     
     url = "https://overpass-api.de/api/interpreter"
-    response = requests.post(url, data={'data': query})
+    headers = {'User-Agent': 'ColdTraceApp/1.0'}
+    response = requests.post(url, data={'data': query}, headers=headers)
     if response.status_code != 200:
         print(f"Error fetching Overpass data: {response.text}")
         return []
