@@ -1,7 +1,6 @@
 from database.db import get_db, execute_query, fetch_all, fetch_one
 from fetchers.overpass import fetch_phc_locations
 from fetchers.datagovin import fetch_hmis_wastage, fetch_power_outage
-from fetchers.openmeteo import fetch_temperature_forecast
 from fetchers.whopis import get_equipment_reliability
 from ml.pipeline import train_initial_model, predict_risk, extract_features
 from services.alerts import trigger_alerts
