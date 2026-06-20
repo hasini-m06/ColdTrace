@@ -8,6 +8,7 @@ from services.alerts import trigger_alerts
 from core.config import settings
 import json
 import time
+import numpy as np
 
 def run_cycle():
     print("Starting ColdTrace Data Cycle...")
@@ -31,17 +32,13 @@ def run_cycle():
     
     all_wastage = fetch_hmis_wastage()
     all_outages = fetch_power_outage()
+    from fetchers.openmeteo import fetch_weather_batch
     
-    import numpy as np
+    # Batch fetch all weather in 5 requests instead of 500!
+    weather_results = fetch_weather_batch(db_locations)
     
-    temp_deltas = {}
-    current_temps = {}
-    for loc in db_locations:
-        ct, delta = fetch_temperature_forecast(loc['lat'], loc['lng'])
-        if delta is not None:
-            temp_deltas[loc['id']] = delta
-            current_temps[loc['id']] = ct
-        time.sleep(0.02)
+    temp_deltas = {k: v[1] for k, v in weather_results.items() if v[1] is not None}
+    current_temps = {k: v[0] for k, v in weather_results.items() if v[0] is not None}
             
     print("Training ML model...")
     train_initial_model(db_locations, all_wastage, all_outages, temp_deltas)

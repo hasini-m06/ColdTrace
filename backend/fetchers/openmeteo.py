@@ -1,29 +1,43 @@
 import requests
+import time
 
-def fetch_temperature_forecast(lat: float, lng: float):
-    """Fetches 48h temp forecast and returns current temp and max delta."""
+def fetch_weather_batch(locations: list):
+    """Fetches 48h temp forecast for a batch of locations. Returns a dict mapping loc['id'] to (current_temp, delta)."""
+    results = {}
+    chunk_size = 50
     url = "https://api.open-meteo.com/v1/forecast"
-    params = {
-        "latitude": lat,
-        "longitude": lng,
-        "hourly": "temperature_2m",
-        "forecast_days": 3,
-        "timezone": "Asia/Kolkata"
-    }
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
+    
+    for i in range(0, len(locations), chunk_size):
+        chunk = locations[i:i + chunk_size]
+        lats = ",".join([str(loc['lat']) for loc in chunk])
+        lngs = ",".join([str(loc['lng']) for loc in chunk])
         
-        # Get current temp
-        current_temp = data['hourly']['temperature_2m'][0]
+        params = {
+            "latitude": lats,
+            "longitude": lngs,
+            "hourly": "temperature_2m",
+            "forecast_days": 3,
+            "timezone": "Asia/Kolkata"
+        }
         
-        # Get max temp over next 48h
-        next_48h = data['hourly']['temperature_2m'][:48]
-        max_temp = max(next_48h)
-        
-        delta = max_temp - current_temp
-        return current_temp, delta
-    except Exception as e:
-        print(f"Error fetching weather for {lat},{lng}: {e}")
-        return None, None
+        try:
+            response = requests.get(url, params=params, timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                # If only 1 location is requested, it returns a dict instead of a list
+                if isinstance(data, dict):
+                    data = [data]
+                
+                for idx, res in enumerate(data):
+                    loc_id = chunk[idx]['id']
+                    if 'hourly' in res and 'temperature_2m' in res['hourly']:
+                        temps = res['hourly']['temperature_2m']
+                        current_temp = temps[0]
+                        max_temp = max(temps[:48])
+                        delta = max_temp - current_temp
+                        results[loc_id] = (current_temp, delta)
+            time.sleep(0.5) # respectful delay between chunks
+        except Exception as e:
+            print(f"Error fetching weather batch {i}: {e}")
+            
+    return results
