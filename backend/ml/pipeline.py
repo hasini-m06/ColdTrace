@@ -16,6 +16,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import (
     recall_score, precision_score, f1_score,
@@ -135,6 +136,9 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
     # 3. Evaluate with stratified CV (or fallback split)
     # ------------------------------------------------------------------
     rf_eval = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
+    # Platt scaling calibration: maps raw RF probabilities to smooth 0–1 curve
+    # so predict_proba doesn't snap to 0.0/1.0 on in-distribution examples.
+    calibrated_eval = CalibratedClassifierCV(rf_eval, method='sigmoid', cv=3)
 
     n_samples  = len(y)
     min_class  = min(y.sum(), n_samples - y.sum())
@@ -149,8 +153,8 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
         for fold, (train_idx, test_idx) in enumerate(skf.split(df, y), 1):
             X_tr, X_te = df.iloc[train_idx], df.iloc[test_idx]
             y_tr, y_te = y[train_idx], y[test_idx]
-            rf_eval.fit(X_tr, y_tr)
-            preds = rf_eval.predict(X_te)
+            calibrated_eval.fit(X_tr, y_tr)
+            preds = calibrated_eval.predict(X_te)
             all_y_true.extend(y_te.tolist())
             all_y_pred.extend(preds.tolist())
             print(f"  Fold {fold}: recall={recall_score(y_te, preds, zero_division=0):.3f}  "
@@ -163,9 +167,9 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
         X_tr, X_te, y_tr, y_te = train_test_split(
             df, y, test_size=0.2, stratify=y, random_state=42
         )
-        rf_eval.fit(X_tr, y_tr)
+        calibrated_eval.fit(X_tr, y_tr)
         all_y_true = y_te.tolist()
-        all_y_pred = rf_eval.predict(X_te).tolist()
+        all_y_pred = calibrated_eval.predict(X_te).tolist()
         eval_method = "stratified_80_20_split"
 
     # ------------------------------------------------------------------
@@ -211,9 +215,10 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
     # 5. Re-train final model on FULL dataset (standard practice after CV)
     # ------------------------------------------------------------------
     rf_final = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
-    rf_final.fit(df, y)
-    joblib.dump(rf_final, MODEL_PATH)
-    print(f"[ColdTrace ML] Final model trained on full dataset and saved to {MODEL_PATH}")
+    final_calibrated = CalibratedClassifierCV(rf_final, method='sigmoid', cv=3)
+    final_calibrated.fit(df, y)
+    joblib.dump(final_calibrated, MODEL_PATH)
+    print(f"[ColdTrace ML] Final calibrated model trained on full dataset and saved to {MODEL_PATH}")
 
 
 def predict_risk(features_dict) -> tuple:

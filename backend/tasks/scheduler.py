@@ -45,12 +45,17 @@ def run_cycle():
     print("Predicting scores...")
     for loc in db_locations:
         dist = loc['district'].lower()
-        wastage = all_wastage.get(dist, round(np.random.uniform(0.02, 0.09), 3))
-        outage = all_outages.get(dist, np.random.randint(0, 5))
-        temp_delta = temp_deltas.get(loc['id'], round(np.random.uniform(3.0, 8.0), 1))
-        ct = current_temps.get(loc['id'], round(np.random.uniform(28.0, 36.0), 1))
-        
-        equip_score = np.random.randint(20, 100)
+        # Use same deterministic fallback values as training — random fallbacks
+        # cause train/predict distribution mismatch that snaps scores to 0 or 100.
+        median_wastage = 0.05
+        median_outage  = 2
+        wastage    = all_wastage.get(dist, median_wastage)
+        outage     = all_outages.get(dist, median_outage)
+        temp_delta = temp_deltas.get(loc['id'], 5.0)
+        ct         = current_temps.get(loc['id'], 30.0)
+
+        # Same deterministic formula as pipeline.py training — must match exactly
+        equip_score = int((loc['id'] * 37) % 80) + 20
         
         features = extract_features(loc, ct, temp_delta, wastage, outage, equip_score)
         score, top_feats = predict_risk(features)
