@@ -58,22 +58,26 @@ scheduler = BackgroundScheduler()
 
 
 # ---------------------------------------------------------------------------
-# Auth dependency for write/trigger endpoints
+# Auth dependency — RESERVED for future internal-only endpoints
 # ---------------------------------------------------------------------------
+# IMPORTANT: Do NOT attach require_admin_key to any endpoint that has a
+# public-facing UI button. VITE_ env vars are compiled into the JS bundle
+# and visible to anyone in devtools — sending a secret from the browser
+# provides zero real protection. Use rate limiting (slowapi) for public
+# endpoints instead. ADMIN_API_KEY is kept here for future admin-only
+# debug/export routes that have NO public UI trigger.
 def require_admin_key(x_admin_key: str = Header(default="")):
     """
-    FastAPI dependency: validates X-Admin-Key header against ADMIN_API_KEY env var.
-    Returns 401 if missing or wrong. Public GET endpoints do NOT use this dependency.
+    FastAPI dependency for FUTURE INTERNAL-ONLY endpoints.
+    Do NOT use on any endpoint triggered by the public dashboard.
     """
     if not ADMIN_API_KEY:
-        # If env var not configured, block all access with a clear error
         raise HTTPException(
             status_code=503,
             detail="ADMIN_API_KEY environment variable not configured on server."
         )
     if x_admin_key != ADMIN_API_KEY:
-        # Log the failed attempt before rejecting
-        _audit_log("/refresh", "unknown", success=False)
+        _audit_log("admin_endpoint", "unknown", success=False)
         raise HTTPException(status_code=401, detail="Invalid or missing X-Admin-Key header.")
 
 
@@ -193,19 +197,21 @@ def get_model_metrics(request: Request):
 
 
 # ---------------------------------------------------------------------------
-# Protected write endpoint (auth + strict rate limit + audit log)
+# Public trigger endpoint — protected by rate limit only (5/hour per IP)
 # ---------------------------------------------------------------------------
+# NOTE: No secret key auth here. VITE_ env vars are bundled into the public
+# JS and visible in devtools — a key sent from the browser is not a secret.
+# Server-side rate limiting (slowapi) is the correct abuse protection at
+# this tier. Every call is still audit-logged for traceability.
 @app.post("/refresh")
 @limiter.limit("5/hour")
 def refresh_data(
     request: Request,
     background_tasks: BackgroundTasks,
-    _: str = Depends(require_admin_key),   # 401 if key wrong/missing
 ):
     """
     Triggers a full data-pipeline cycle.
-    Requires X-Admin-Key header matching ADMIN_API_KEY env var.
-    Rate-limited to 5 calls per hour per IP.
+    Public endpoint — rate-limited to 5 calls/hour per IP.
     Every call is audit-logged.
     """
     ip = get_remote_address(request)
