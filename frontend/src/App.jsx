@@ -36,12 +36,23 @@ function App() {
   }, []);
 
   const handleRefresh = async () => {
+    setLoading(true);
     try {
       await refreshData();
-      alert("Refresh cycle triggered. It may take a minute to process.");
-      setTimeout(loadData, 10000);
+      alert("✅ Data cycle triggered! Waiting 90 seconds for the AI to process all 500 locations...");
+      setTimeout(loadData, 90000);
     } catch (error) {
       console.error("Refresh failed:", error);
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail || error.message;
+      if (status === 401) {
+        alert(`❌ Authentication failed (401). The VITE_ADMIN_API_KEY on Vercel may not have been applied yet. Try redeploying on Vercel.\n\nDetail: ${detail}`);
+      } else if (status === 429) {
+        alert("⏳ Rate limited — you've triggered the cycle too many times this hour. Wait a few minutes and try again.");
+      } else {
+        alert(`❌ Refresh failed (${status || 'network error'}): ${detail}\n\nCheck the browser console (F12) for more details.`);
+      }
+      setLoading(false);
     }
   };
 
