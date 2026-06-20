@@ -9,4 +9,3 @@ imbalanced-learn
 joblib
 pyyaml
 beautifulsoup4
-psycopg2-binary
