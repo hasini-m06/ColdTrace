@@ -61,6 +61,17 @@ def init_db():
     )
     ''')
 
+    # Security audit log — records /refresh hits and failed auth attempts
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS access_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        endpoint TEXT NOT NULL,
+        ip TEXT,
+        success INTEGER DEFAULT 1,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+
     conn.commit()
     conn.close()
 
