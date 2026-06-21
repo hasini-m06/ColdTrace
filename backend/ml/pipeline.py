@@ -206,7 +206,7 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
     with open(METRICS_PATH, "w") as f:
         json.dump(metrics, f, indent=2)
 
-    print(f"[ColdTrace ML] Evaluation complete → "
+    print(f"[ColdTrace ML] Evaluation complete -> "
           f"recall={recall:.3f}  precision={precision:.3f}  F1={f1:.3f}")
     print(f"[ColdTrace ML] Confusion matrix (TN FP / FN TP): {cm}")
     print(f"[ColdTrace ML] Metrics saved to {METRICS_PATH}")
@@ -233,9 +233,20 @@ def predict_risk(features_dict) -> tuple:
 
     prob = model.predict_proba(df)[0][1] * 100
 
-    # Feature contribution: importance × normalised absolute feature value
-    importances  = model.feature_importances_
-    feat_names   = df.columns
+    # CalibratedClassifierCV wraps multiple sub-estimators — average their
+    # feature importances instead of calling model.feature_importances_ directly
+    # (which doesn't exist on the wrapper and raises AttributeError).
+    try:
+        importances = np.mean(
+            [cal.estimator.feature_importances_
+             for cal in model.calibrated_classifiers_],
+            axis=0
+        )
+    except AttributeError:
+        # Fallback for non-calibrated models (e.g. plain RandomForest)
+        importances = model.feature_importances_
+
+    feat_names    = df.columns
     contributions = {}
     for i, name in enumerate(feat_names):
         val = features_dict[name]
