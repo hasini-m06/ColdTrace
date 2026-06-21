@@ -70,3 +70,14 @@ export const authResetPassword = async (token, new_password) =>
 export const authVerifyEmail = async (token) =>
     (await api.get(`/auth/verify-email?token=${token}`)).data;
 
+// ── Alert subscription endpoints ──────────────────────────────────────────────
+export const getMySubscriptions = async () => 
+    (await api.get('/alerts/my-subscriptions')).data;
+
+export const subscribeToAlerts = async (locationId = null) => 
+    (await api.post('/alerts/subscribe', { location_id: locationId })).data;
+
+export const unsubscribeFromAlerts = async (preferenceId) => 
+    (await api.delete(`/alerts/subscribe/${preferenceId}`)).data;
+
+

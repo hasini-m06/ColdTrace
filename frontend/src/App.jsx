@@ -34,6 +34,7 @@ function ProtectedRoute({ children }) {
 // ── Dashboard / Main App Layout ──────────────────────────────────────────────
 function DashboardLayout() {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
 
     const [locations, setLocations]           = useState([]);
     const [summary, setSummary]               = useState({ total: 0, red: 0, amber: 0, green: 0 });
@@ -84,7 +85,16 @@ function DashboardLayout() {
     };
 
     const handleViewChange = (view) => {
+        if (view === 'officials' && !user) {
+            navigate('/login');
+            return;
+        }
         setCurrentView(view);
+    };
+
+    const handleLogout = async () => {
+        await logout();
+        navigate('/login');
     };
 
     return (
@@ -97,7 +107,7 @@ function DashboardLayout() {
                 currentView={currentView}
                 onViewChange={handleViewChange}
                 user={user}
-                onLogout={logout}
+                onLogout={handleLogout}
             />
             <div className="map-container">
                 {currentView === 'map' ? (
@@ -140,14 +150,7 @@ export default function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route 
-                path="/" 
-                element={
-                    <ProtectedRoute>
-                        <DashboardLayout />
-                    </ProtectedRoute>
-                } 
-            />
+            <Route path="/" element={<DashboardLayout />} />
             {/* Fallback to default route */}
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
