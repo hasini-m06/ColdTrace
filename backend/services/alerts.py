@@ -323,22 +323,19 @@ def send_alerts_digest(triggered_alerts: list):
 </html>
 """
 
-    # 4. Find subscribers (send digest to verified emails)
+    # 4. Find subscribers (send digest to all registered users automatically)
     # We will ALWAYS include GMAIL_USER if configured, so the primary operator gets the alert as requested.
     recipients = set()
     if GMAIL_USER:
         recipients.add(GMAIL_USER)
 
     try:
-        subscribers = fetch_all(
-            """SELECT DISTINCT u.email FROM users u
-               JOIN alert_preferences ap ON ap.user_id = u.id
-               WHERE u.is_verified = 1"""
-        )
-        for row in subscribers:
+        # Automatically include all registered accounts in the email recipients list
+        all_users = fetch_all("SELECT email FROM users")
+        for row in all_users:
             recipients.add(row['email'])
     except Exception as e:
-        print(f"Error fetching subscribers from DB: {e}")
+        print(f"Error fetching registered users from DB: {e}")
 
     # Also read any custom environment variable for static recipient list
     custom_emails = os.getenv("ALERT_RECIPIENT_EMAILS", "")
