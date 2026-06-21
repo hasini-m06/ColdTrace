@@ -9,8 +9,8 @@ app:
 
 alerts:
   score_threshold: 85
-  email_recipients:
-    - "admin@example.com"
+  # email_recipients intentionally removed — alert emails are now sent to verified
+  # subscribers from the users/alert_preferences DB tables, not a static list.
   sms_recipients:
     - "+1234567890"
 

@@ -24,6 +24,7 @@ from database.db import init_db, fetch_all, fetch_one, execute_query
 from tasks.scheduler import run_cycle
 from core.config import settings, FRONTEND_URL
 from routers.auth import router as auth_router
+from routers.alerts_router import router as alerts_router
 from apscheduler.schedulers.background import BackgroundScheduler
 import uvicorn
 
@@ -43,8 +44,9 @@ app = FastAPI(title="ColdTrace API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Include auth router — all endpoints under /auth/*
-app.include_router(auth_router)
+# Include routers
+app.include_router(auth_router)          # /auth/*
+app.include_router(alerts_router)        # /alerts/* (protected)
 
 # ---------------------------------------------------------------------------
 # CORS — restricted to actual frontend origin, credentials enabled

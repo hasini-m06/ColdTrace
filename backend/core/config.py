@@ -1,7 +1,7 @@
 import os
 import yaml
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class Bounds(BaseModel):
     south: float
@@ -16,7 +16,9 @@ class AppConfig(BaseModel):
 
 class AlertsConfig(BaseModel):
     score_threshold: int
-    email_recipients: List[str]
+    # email_recipients removed from config.yaml — now queried from the users/alert_preferences
+    # DB tables so only verified subscribers receive alerts.
+    email_recipients: List[str] = []   # kept optional for backward-compat; ignored at runtime
     sms_recipients: List[str]
 
 class ModelConfig(BaseModel):
