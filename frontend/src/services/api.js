@@ -17,10 +17,15 @@ api.interceptors.response.use(
         
         // If error is 401 and we haven't already retried this request
         if (error.response && error.response.status === 401 && !originalRequest._retry) {
+            const url = originalRequest.url || '';
+            
             // Check if this request was the refresh request itself to avoid infinite loop
-            if (originalRequest.url === '/auth/refresh' || originalRequest.url === '/auth/refresh-token') {
+            if (url.includes('/auth/refresh') || url.includes('/auth/refresh-token')) {
                 return Promise.reject(error);
             }
+            
+            // Check if this is a checkAuth request on mount, which shouldn't redirect guests to login
+            const isAuthMe = url.includes('/auth/me');
             
             originalRequest._retry = true;
             try {
@@ -29,8 +34,10 @@ api.interceptors.response.use(
                 // Retry the original request
                 return api(originalRequest);
             } catch (refreshError) {
-                // If refreshing fails, clear user session and redirect to login
-                window.location.href = '/login';
+                // If refreshing fails, redirect to login only if it wasn't a background auth check
+                if (!isAuthMe) {
+                    window.location.href = '/login';
+                }
                 return Promise.reject(refreshError);
             }
         }
