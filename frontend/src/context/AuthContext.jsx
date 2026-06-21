@@ -5,7 +5,8 @@ import {
     authLogout, 
     authRegister, 
     authForgotPassword, 
-    authResetPassword 
+    authResetPassword,
+    authVerifyEmail
 } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -56,6 +57,10 @@ export function AuthProvider({ children }) {
         return await authResetPassword(token, newPassword);
     }, []);
 
+    const verifyEmail = useCallback(async (token) => {
+        return await authVerifyEmail(token);
+    }, []);
+
     const isAuthenticated = !!user;
 
     return (
@@ -67,7 +72,8 @@ export function AuthProvider({ children }) {
             logout, 
             register, 
             forgotPassword, 
-            resetPassword 
+            resetPassword,
+            verifyEmail
         }}>
             {children}
         </AuthContext.Provider>

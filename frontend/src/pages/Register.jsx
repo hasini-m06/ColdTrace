@@ -9,7 +9,7 @@ const ShieldIcon = () => (
     </svg>
 );
 
-export default function RegisterPage() {
+export default function Register() {
     const { register } = useAuth();
     const navigate = useNavigate();
     const [email, setEmail]       = useState('');
@@ -19,21 +19,39 @@ export default function RegisterPage() {
     const [success, setSuccess]   = useState('');
     const [loading, setLoading]   = useState(false);
 
+    // Password validation rule helper (min 8 chars, letter + number)
+    const isPasswordStrong = (pass) => {
+        return pass.length >= 8 && /[a-zA-Z]/.test(pass) && /\d/.test(pass);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setSuccess('');
+
+        // Client-side validations
+        if (!email.trim() || !password || !confirm) {
+            setError('All fields are required.');
+            return;
+        }
 
         if (password !== confirm) {
             setError('Passwords do not match.');
             return;
         }
 
+        if (!isPasswordStrong(password)) {
+            setError('Password must be at least 8 characters long and contain both a letter and a number.');
+            return;
+        }
+
         setLoading(true);
         try {
-            const res = await register(email, password);
-            setSuccess(res.message || 'Check your email for a verification link!');
-            setEmail(''); setPassword(''); setConfirm('');
+            const res = await register(email.trim(), password);
+            setSuccess(res.message || 'Check your email to verify your account.');
+            setEmail('');
+            setPassword('');
+            setConfirm('');
         } catch (err) {
             const msg = err?.response?.data?.detail || 'Registration failed. Please try again.';
             setError(msg);
@@ -74,16 +92,23 @@ export default function RegisterPage() {
                                 onChange={e => setEmail(e.target.value)}
                                 required
                                 autoFocus
+                                disabled={loading}
                             />
                         </div>
                         <div className="auth-field">
-                            <label>Password <span style={{ color: '#475569', fontWeight: 400 }}>(min 8 chars, letter + number)</span></label>
+                            <label>
+                                Password{' '}
+                                <span style={{ color: password && !isPasswordStrong(password) ? '#ef4444' : '#64748b', fontWeight: 400 }}>
+                                    (min 8 chars, letter + number)
+                                </span>
+                            </label>
                             <input
                                 type="password"
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
                                 required
+                                disabled={loading}
                             />
                         </div>
                         <div className="auth-field">
@@ -94,6 +119,7 @@ export default function RegisterPage() {
                                 value={confirm}
                                 onChange={e => setConfirm(e.target.value)}
                                 required
+                                disabled={loading}
                             />
                         </div>
 
@@ -105,9 +131,14 @@ export default function RegisterPage() {
                 )}
 
                 <div className="auth-divider" />
+
                 <div className="auth-footer">
                     Already have an account?{' '}
-                    <button className="auth-link" onClick={() => navigate('/login')}>
+                    <button 
+                        className="auth-link" 
+                        onClick={() => navigate('/login')}
+                        disabled={loading}
+                    >
                         Sign in
                     </button>
                 </div>

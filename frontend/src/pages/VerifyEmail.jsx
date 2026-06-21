@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import '../styles/auth.css';
 
 const ShieldIcon = () => (
@@ -8,25 +9,41 @@ const ShieldIcon = () => (
     </svg>
 );
 
-export default function VerifyEmailPage() {
+export default function VerifyEmail() {
+    const { verifyEmail } = useAuth();
     const navigate = useNavigate();
-    // The backend redirects to /verify-email?verified=1 on success,
-    // or the user lands here after clicking the backend's redirect.
-    const [status, setStatus] = useState('checking'); // 'checking' | 'success' | 'error'
+    const [searchParams] = useSearchParams();
+    const [status, setStatus] = useState('verifying'); // 'verifying' | 'success' | 'error'
+    const [errorMsg, setErrorMsg] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
 
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('verified') === '1') {
-            setStatus('success');
-        } else if (params.get('token')) {
-            // Direct backend verification link — token is handled server-side via redirect.
-            // If user lands here with a token but no verified=1, it means they manually
-            // navigated here. Show a helpful message.
-            setStatus('manual');
-        } else {
+        const token = searchParams.get('token');
+        if (!token) {
             setStatus('error');
+            setErrorMsg('No verification token found in URL. Please click the link in your email.');
+            return;
         }
-    }, []);
+
+        const runVerification = async () => {
+            try {
+                const res = await verifyEmail(token);
+                setStatus('success');
+                setSuccessMsg(res.message || 'Email verified successfully!');
+                
+                // Redirect to login after 3 seconds on success
+                setTimeout(() => {
+                    navigate('/login');
+                }, 3000);
+            } catch (err) {
+                setStatus('error');
+                const msg = err?.response?.data?.detail || 'Verification failed. The link may have expired or is invalid.';
+                setErrorMsg(msg);
+            }
+        };
+
+        runVerification();
+    }, [searchParams, verifyEmail, navigate]);
 
     return (
         <div className="auth-page">
@@ -39,10 +56,12 @@ export default function VerifyEmailPage() {
                     <p>Predictive Cold Chain Monitoring</p>
                 </div>
 
-                {status === 'checking' && (
+                <p className="auth-title">Email Verification</p>
+
+                {status === 'verifying' && (
                     <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px 0' }}>
                         <span className="auth-spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
-                        <p style={{ marginTop: 16 }}>Verifying your email…</p>
+                        <p style={{ marginTop: 16 }}>Verifying your email address…</p>
                     </div>
                 )}
 
@@ -50,7 +69,10 @@ export default function VerifyEmailPage() {
                     <>
                         <div className="auth-success" style={{ marginBottom: 24, fontSize: 15 }}>
                             <span>✓</span>
-                            <span>Email verified successfully! You can now sign in to the Officials Hub.</span>
+                            <span>{successMsg}</span>
+                        </div>
+                        <div className="auth-info" style={{ textAlign: 'center', marginBottom: 20 }}>
+                            Redirecting to sign in page in 3 seconds…
                         </div>
                         <button className="auth-btn" onClick={() => navigate('/login')}>
                             Sign In Now
@@ -62,19 +84,12 @@ export default function VerifyEmailPage() {
                     <>
                         <div className="auth-error" style={{ marginBottom: 24 }}>
                             <span>⚠</span>
-                            <span>Verification link is invalid or has expired. Please request a new one.</span>
+                            <span>{errorMsg}</span>
                         </div>
                         <button className="auth-btn" onClick={() => navigate('/register')}>
                             Register Again
                         </button>
                     </>
-                )}
-
-                {status === 'manual' && (
-                    <div className="auth-info">
-                        This link should be opened directly from your email. If you were redirected here, 
-                        your email has been verified — try signing in.
-                    </div>
                 )}
 
                 <div className="auth-divider" />

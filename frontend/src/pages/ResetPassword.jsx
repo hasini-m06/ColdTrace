@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authResetPassword } from '../services/api';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import '../styles/auth.css';
 
 const ShieldIcon = () => (
@@ -9,8 +9,11 @@ const ShieldIcon = () => (
     </svg>
 );
 
-export default function ResetPasswordPage() {
+export default function ResetPassword() {
+    const { resetPassword } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    
     const [token, setToken]       = useState('');
     const [password, setPassword] = useState('');
     const [confirm, setConfirm]   = useState('');
@@ -18,24 +21,52 @@ export default function ResetPasswordPage() {
     const [success, setSuccess]   = useState('');
     const [loading, setLoading]   = useState(false);
 
-    // Read token from URL query param ?token=xxx
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const t = params.get('token');
-        if (t) setToken(t);
-        else setError('No reset token found in URL. Please use the link from your email.');
-    }, []);
+        const t = searchParams.get('token');
+        if (t) {
+            setToken(t);
+        } else {
+            setError('No reset token found in URL. Please use the link from your email.');
+        }
+    }, [searchParams]);
+
+    const isPasswordStrong = (pass) => {
+        return pass.length >= 8 && /[a-zA-Z]/.test(pass) && /\d/.test(pass);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        if (password !== confirm) { setError('Passwords do not match.'); return; }
+        setSuccess('');
+
+        if (!token) {
+            setError('Missing password reset token.');
+            return;
+        }
+
+        if (!password || !confirm) {
+            setError('All fields are required.');
+            return;
+        }
+
+        if (password !== confirm) {
+            setError('Passwords do not match.');
+            return;
+        }
+
+        if (!isPasswordStrong(password)) {
+            setError('Password must be at least 8 characters long and contain both a letter and a number.');
+            return;
+        }
+
         setLoading(true);
         try {
-            const res = await authResetPassword(token, password);
-            setSuccess(res.message);
+            const res = await resetPassword(token, password);
+            setSuccess(res.message || 'Password has been reset successfully.');
+            setPassword('');
+            setConfirm('');
         } catch (err) {
-            const msg = err?.response?.data?.detail || 'Reset failed. The link may have expired.';
+            const msg = err?.response?.data?.detail || 'Reset failed. The link may have expired or is invalid.';
             setError(msg);
         } finally {
             setLoading(false);
@@ -61,7 +92,12 @@ export default function ResetPasswordPage() {
                 {!success && !error.includes('No reset token') && (
                     <form className="auth-form" onSubmit={handleSubmit}>
                         <div className="auth-field">
-                            <label>New password <span style={{ color: '#475569', fontWeight: 400 }}>(min 8 chars, letter + number)</span></label>
+                            <label>
+                                New password{' '}
+                                <span style={{ color: password && !isPasswordStrong(password) ? '#ef4444' : '#64748b', fontWeight: 400 }}>
+                                    (min 8 chars, letter + number)
+                                </span>
+                            </label>
                             <input
                                 type="password"
                                 placeholder="••••••••"
@@ -69,6 +105,7 @@ export default function ResetPasswordPage() {
                                 onChange={e => setPassword(e.target.value)}
                                 required
                                 autoFocus
+                                disabled={loading || !token}
                             />
                         </div>
                         <div className="auth-field">
@@ -79,6 +116,7 @@ export default function ResetPasswordPage() {
                                 value={confirm}
                                 onChange={e => setConfirm(e.target.value)}
                                 required
+                                disabled={loading || !token}
                             />
                         </div>
                         <button className="auth-btn" type="submit" disabled={loading || !token}>
@@ -96,7 +134,7 @@ export default function ResetPasswordPage() {
 
                 <div className="auth-divider" />
                 <div className="auth-footer">
-                    <button className="auth-link" onClick={() => navigate('/login')}>
+                    <button className="auth-link" onClick={() => navigate('/login')} disabled={loading}>
                         ← Back to sign in
                     </button>
                 </div>

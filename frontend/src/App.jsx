@@ -3,11 +3,11 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import MapComponent from './components/Map';
 import Sidebar from './components/Sidebar';
 import OfficialsDashboard from './components/OfficialsDashboard';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import VerifyEmailPage from './pages/VerifyEmailPage';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 import { useAuth } from './context/AuthContext';
 import { getRiskScores, getDashboardSummary, refreshData } from './services/api';
 
@@ -131,15 +131,15 @@ export default function App() {
         <Routes>
             <Route 
                 path="/login" 
-                element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} 
+                element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
             />
             <Route 
                 path="/register" 
-                element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />} 
+                element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
             />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route 
                 path="/" 
                 element={

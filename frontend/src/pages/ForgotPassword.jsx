@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authForgotPassword } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import '../styles/auth.css';
 
 const ShieldIcon = () => (
@@ -9,7 +9,8 @@ const ShieldIcon = () => (
     </svg>
 );
 
-export default function ForgotPasswordPage() {
+export default function ForgotPassword() {
+    const { forgotPassword } = useAuth();
     const navigate = useNavigate();
     const [email, setEmail]     = useState('');
     const [error, setError]     = useState('');
@@ -20,10 +21,17 @@ export default function ForgotPasswordPage() {
         e.preventDefault();
         setError('');
         setSuccess('');
+
+        if (!email.trim()) {
+            setError('Please enter your email address.');
+            return;
+        }
+
         setLoading(true);
         try {
-            const res = await authForgotPassword(email);
-            setSuccess(res.message);
+            const res = await forgotPassword(email.trim());
+            setSuccess(res.message || 'If an account exists, a password reset link has been sent.');
+            setEmail('');
         } catch (err) {
             const msg = err?.response?.data?.detail || 'Something went wrong. Please try again.';
             setError(msg);
@@ -64,6 +72,7 @@ export default function ForgotPasswordPage() {
                                     onChange={e => setEmail(e.target.value)}
                                     required
                                     autoFocus
+                                    disabled={loading}
                                 />
                             </div>
                             <button className="auth-btn" type="submit" disabled={loading}>
@@ -81,7 +90,7 @@ export default function ForgotPasswordPage() {
 
                 <div className="auth-divider" />
                 <div className="auth-footer">
-                    <button className="auth-link" onClick={() => navigate('/login')}>
+                    <button className="auth-link" onClick={() => navigate('/login')} disabled={loading}>
                         ← Back to sign in
                     </button>
                 </div>

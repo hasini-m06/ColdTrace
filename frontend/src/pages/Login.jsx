@@ -9,7 +9,7 @@ const ShieldIcon = () => (
     </svg>
 );
 
-export default function LoginPage() {
+export default function Login() {
     const { login } = useAuth();
     const navigate = useNavigate();
     const [email, setEmail]       = useState('');
@@ -20,13 +20,24 @@ export default function LoginPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        // Basic client-side validation
+        if (!email.trim() || !password.trim()) {
+            setError('Please enter both email and password.');
+            return;
+        }
+
         setLoading(true);
         try {
-            await login(email, password);
+            await login(email.trim(), password);
             navigate('/');
         } catch (err) {
-            const msg = err?.response?.data?.detail || 'Login failed. Please try again.';
-            setError(msg);
+            const msg = err?.response?.data?.detail || '';
+            if (msg.toLowerCase().includes('locked')) {
+                setError('account temporarily locked, try again later');
+            } else {
+                setError('invalid email or password');
+            }
         } finally {
             setLoading(false);
         }
@@ -62,6 +73,7 @@ export default function LoginPage() {
                             onChange={e => setEmail(e.target.value)}
                             required
                             autoFocus
+                            disabled={loading}
                         />
                     </div>
                     <div className="auth-field">
@@ -72,11 +84,17 @@ export default function LoginPage() {
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             required
+                            disabled={loading}
                         />
                     </div>
 
                     <div style={{ textAlign: 'right', marginTop: -8 }}>
-                        <button type="button" className="auth-link" onClick={() => navigate('/forgot-password')}>
+                        <button 
+                            type="button" 
+                            className="auth-link" 
+                            onClick={() => navigate('/forgot-password')}
+                            disabled={loading}
+                        >
                             Forgot password?
                         </button>
                     </div>
@@ -91,7 +109,11 @@ export default function LoginPage() {
 
                 <div className="auth-footer">
                     Don't have an account?{' '}
-                    <button className="auth-link" onClick={() => navigate('/register')}>
+                    <button 
+                        className="auth-link" 
+                        onClick={() => navigate('/register')}
+                        disabled={loading}
+                    >
                         Request access
                     </button>
                 </div>

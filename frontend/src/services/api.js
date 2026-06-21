@@ -66,3 +66,7 @@ export const authForgotPassword = async (email) =>
 
 export const authResetPassword = async (token, new_password) =>
     (await api.post('/auth/reset-password', { token, new_password })).data;
+
+export const authVerifyEmail = async (token) =>
+    (await api.get(`/auth/verify-email?token=${token}`)).data;
+

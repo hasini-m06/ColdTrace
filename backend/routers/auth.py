@@ -198,8 +198,8 @@ def verify_email(token: str):
         (user["id"],),
     )
 
-    # Redirect to frontend login page with a success flag
-    return RedirectResponse(url=f"{FRONTEND_URL}/login?verified=1")
+    # Return a JSON success response
+    return {"message": "Email verified successfully."}
 
 # ---------------------------------------------------------------------------
 # POST /auth/login
