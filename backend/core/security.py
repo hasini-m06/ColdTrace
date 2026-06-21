@@ -82,6 +82,7 @@ def _utc_now() -> datetime:
 
 def create_access_token(
     data: dict,
+    token_version: int,
     expires_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES,
 ) -> str:
     """
@@ -89,6 +90,7 @@ def create_access_token(
 
     Args:
         data: Payload claims dict. Typically {"sub": user_email}.
+        token_version: The user's current token version.
         expires_minutes: Token lifetime in minutes (default 15).
 
     Returns:
@@ -97,6 +99,7 @@ def create_access_token(
     payload = data.copy()
     payload.update({
         "type": "access",
+        "tv": token_version,
         "exp": _utc_now() + timedelta(minutes=expires_minutes),
         "iat": _utc_now(),
     })
@@ -105,6 +108,7 @@ def create_access_token(
 
 def create_refresh_token(
     data: dict,
+    token_version: int,
     expires_days: int = REFRESH_TOKEN_EXPIRE_DAYS,
 ) -> str:
     """
@@ -112,6 +116,7 @@ def create_refresh_token(
 
     Args:
         data: Payload claims dict. Typically {"sub": user_email}.
+        token_version: The user's current token version.
         expires_days: Token lifetime in days (default 7).
 
     Returns:
@@ -120,6 +125,7 @@ def create_refresh_token(
     payload = data.copy()
     payload.update({
         "type": "refresh",
+        "tv": token_version,
         "exp": _utc_now() + timedelta(days=expires_days),
         "iat": _utc_now(),
     })

@@ -87,9 +87,16 @@ def init_db():
         reset_expires           DATETIME,
         created_at              DATETIME DEFAULT CURRENT_TIMESTAMP,
         failed_login_attempts   INTEGER DEFAULT 0,
-        locked_until            DATETIME
+        locked_until            DATETIME,
+        token_version           INTEGER DEFAULT 0
     )
     ''')
+
+    # Migrations: Add token_version to existing databases if it's missing
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
 
     # Per-user alert subscription preferences
     # location_id NULL means "subscribe to all locations"

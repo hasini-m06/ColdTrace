@@ -91,6 +91,11 @@ def get_current_user(request: Request) -> dict:
     user = fetch_one("SELECT * FROM users WHERE email = ?", (email,))
     if not user:
         raise HTTPException(status_code=401, detail="User not found.")
+
+    # Compare payload["tv"] against the current user's token_version in the DB
+    if payload.get("tv") != user.get("token_version"):
+        raise HTTPException(status_code=401, detail="Token has been invalidated, please log in again")
+
     return user
 
 # ---------------------------------------------------------------------------
@@ -258,8 +263,8 @@ def login(body: LoginRequest, request: Request, response: Response):
         (user["id"],),
     )
 
-    access_token  = create_access_token({"sub": user["email"]})
-    refresh_token = create_refresh_token({"sub": user["email"]})
+    access_token  = create_access_token({"sub": user["email"]}, token_version=user["token_version"])
+    refresh_token = create_refresh_token({"sub": user["email"]}, token_version=user["token_version"])
     _set_auth_cookies(response, access_token, refresh_token)
 
     return {"message": "Login successful.", "email": user["email"]}
@@ -286,11 +291,15 @@ def refresh_token_endpoint(request: Request, response: Response):
         raise HTTPException(status_code=401, detail="Refresh token is invalid or expired.")
 
     # Ensure user still exists
-    user = fetch_one("SELECT id FROM users WHERE email = ?", (email,))
+    user = fetch_one("SELECT id, token_version FROM users WHERE email = ?", (email,))
     if not user:
         raise HTTPException(status_code=401, detail="User not found.")
 
-    new_access = create_access_token({"sub": email})
+    # Compare payload["tv"] against the current user's token_version in the DB
+    if payload.get("tv") != user.get("token_version"):
+        raise HTTPException(status_code=401, detail="Token has been invalidated, please log in again")
+
+    new_access = create_access_token({"sub": email}, token_version=user["token_version"])
     response.set_cookie(key="access_token", value=new_access, max_age=60 * 15, **_COOKIE_KWARGS)
     return {"message": "Token refreshed."}
 
@@ -365,6 +374,10 @@ def reset_password(body: ResetPasswordRequest):
                failed_login_attempts = 0, locked_until = NULL
            WHERE id = ?""",
         (new_hash, user["id"]),
+    )
+    execute_query(
+        "UPDATE users SET token_version = token_version + 1 WHERE id = ?",
+        (user["id"],)
     )
     # Access tokens are short-lived (15 min) so we don't need an explicit
     # blacklist — existing sessions naturally expire within 15 minutes.
