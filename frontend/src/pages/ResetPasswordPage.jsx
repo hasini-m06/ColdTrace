@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authResetPassword } from '../services/api';
 import '../styles/auth.css';
 
@@ -8,7 +9,8 @@ const ShieldIcon = () => (
     </svg>
 );
 
-export default function ResetPasswordPage({ onNavigate }) {
+export default function ResetPasswordPage() {
+    const navigate = useNavigate();
     const [token, setToken]       = useState('');
     const [password, setPassword] = useState('');
     const [confirm, setConfirm]   = useState('');
@@ -87,14 +89,14 @@ export default function ResetPasswordPage({ onNavigate }) {
                 )}
 
                 {success && (
-                    <button className="auth-btn" style={{ marginTop: 8 }} onClick={() => onNavigate('login')}>
+                    <button className="auth-btn" style={{ marginTop: 8 }} onClick={() => navigate('/login')}>
                         Go to Sign In
                     </button>
                 )}
 
                 <div className="auth-divider" />
                 <div className="auth-footer">
-                    <button className="auth-link" onClick={() => onNavigate('login')}>
+                    <button className="auth-link" onClick={() => navigate('/login')}>
                         ← Back to sign in
                     </button>
                 </div>

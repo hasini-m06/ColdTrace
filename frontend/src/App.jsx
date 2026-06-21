@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import MapComponent from './components/Map';
 import Sidebar from './components/Sidebar';
 import OfficialsDashboard from './components/OfficialsDashboard';
@@ -7,31 +8,38 @@ import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
 import { getRiskScores, getDashboardSummary, refreshData } from './services/api';
 
-// ── URL-based page detection (no react-router needed) ────────────────────────
-function getPageFromURL() {
-    const path = window.location.pathname;
-    const params = new URLSearchParams(window.location.search);
-    if (path.includes('verify-email'))   return 'verify-email';
-    if (path.includes('reset-password')) return 'reset-password';
-    if (params.get('verified') === '1')  return 'verify-email';
-    return 'app';  // default: main dashboard
+// ── ProtectedRoute wrapper component ─────────────────────────────────────────
+function ProtectedRoute({ children }) {
+    const { isAuthenticated, isLoading } = useAuth();
+
+    if (isLoading) {
+        return (
+            <div style={{ height: '100vh', display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', background: '#0f172a', color: '#64748b' }}>
+                Loading…
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return children;
 }
 
-// ── Inner app — rendered after AuthProvider is ready ─────────────────────────
-function InnerApp() {
-    const { user, loading: authLoading, logout } = useAuth();
+// ── Dashboard / Main App Layout ──────────────────────────────────────────────
+function DashboardLayout() {
+    const { user, logout } = useAuth();
 
     const [locations, setLocations]           = useState([]);
     const [summary, setSummary]               = useState({ total: 0, red: 0, amber: 0, green: 0 });
     const [selectedLocation, setSelectedLocation] = useState(null);
     const [loading, setLoading]               = useState(true);
     const [currentView, setCurrentView]       = useState('map');
-
-    // Auth page state — 'app' | 'login' | 'register' | 'forgot' | 'reset-password' | 'verify-email'
-    const [authPage, setAuthPage] = useState(() => getPageFromURL());
 
     const loadData = async () => {
         setLoading(true);
@@ -52,12 +60,10 @@ function InnerApp() {
     };
 
     useEffect(() => {
-        if (authPage === 'app') {
-            loadData();
-            const interval = setInterval(loadData, 6 * 60 * 60 * 1000);
-            return () => clearInterval(interval);
-        }
-    }, [authPage]);
+        loadData();
+        const interval = setInterval(loadData, 6 * 60 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleRefresh = async () => {
         setLoading(true);
@@ -77,46 +83,9 @@ function InnerApp() {
         }
     };
 
-    // Officials Hub tab clicked — require login
     const handleViewChange = (view) => {
-        if (view === 'officials' && !user) {
-            setAuthPage('login');
-            return;
-        }
         setCurrentView(view);
     };
-
-    // ── Auth page router ──────────────────────────────────────────────────────
-    if (authPage === 'verify-email') {
-        return <VerifyEmailPage onNavigate={setAuthPage} />;
-    }
-    if (authPage === 'reset-password') {
-        return <ResetPasswordPage onNavigate={setAuthPage} />;
-    }
-
-    // If user just logged in from the auth flow, return to the Officials Hub
-    if (authPage === 'login' || authPage === 'register' || authPage === 'forgot') {
-        if (user) {
-            // Already authenticated — go straight to Officials Hub
-            setAuthPage('app');
-            setCurrentView('officials');
-            return null;
-        }
-        if (authPage === 'login')    return <LoginPage    onNavigate={setAuthPage} />;
-        if (authPage === 'register') return <RegisterPage onNavigate={setAuthPage} />;
-        if (authPage === 'forgot')   return <ForgotPasswordPage onNavigate={setAuthPage} />;
-    }
-
-    // ── Main dashboard ────────────────────────────────────────────────────────
-    if (authLoading) {
-        // Don't flash auth pages while checking session cookie
-        return (
-            <div style={{ height: '100vh', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', background: '#0f172a', color: '#64748b' }}>
-                Loading…
-            </div>
-        );
-    }
 
     return (
         <div className="app-container">
@@ -138,7 +107,6 @@ function InnerApp() {
                         selectedId={selectedLocation?.id}
                     />
                 ) : (
-                    // Officials Hub — only reachable if user is logged in (enforced above)
                     <OfficialsDashboard user={user} />
                 )}
             </div>
@@ -146,11 +114,42 @@ function InnerApp() {
     );
 }
 
-// ── Root export wraps everything in AuthProvider ──────────────────────────────
+// ── Root export using Routes ──────────────────────────────────────────────────
 export default function App() {
+    const { isAuthenticated, isLoading } = useAuth();
+
+    if (isLoading) {
+        return (
+            <div style={{ height: '100vh', display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', background: '#0f172a', color: '#64748b' }}>
+                Loading…
+            </div>
+        );
+    }
+
     return (
-        <AuthProvider>
-            <InnerApp />
-        </AuthProvider>
+        <Routes>
+            <Route 
+                path="/login" 
+                element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} 
+            />
+            <Route 
+                path="/register" 
+                element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />} 
+            />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route 
+                path="/" 
+                element={
+                    <ProtectedRoute>
+                        <DashboardLayout />
+                    </ProtectedRoute>
+                } 
+            />
+            {/* Fallback to default route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
     );
 }

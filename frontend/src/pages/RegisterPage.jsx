@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/auth.css';
 
@@ -8,8 +9,9 @@ const ShieldIcon = () => (
     </svg>
 );
 
-export default function RegisterPage({ onNavigate }) {
+export default function RegisterPage() {
     const { register } = useAuth();
+    const navigate = useNavigate();
     const [email, setEmail]       = useState('');
     const [password, setPassword] = useState('');
     const [confirm, setConfirm]   = useState('');
@@ -103,10 +105,9 @@ export default function RegisterPage({ onNavigate }) {
                 )}
 
                 <div className="auth-divider" />
-
                 <div className="auth-footer">
                     Already have an account?{' '}
-                    <button className="auth-link" onClick={() => onNavigate('login')}>
+                    <button className="auth-link" onClick={() => navigate('/login')}>
                         Sign in
                     </button>
                 </div>

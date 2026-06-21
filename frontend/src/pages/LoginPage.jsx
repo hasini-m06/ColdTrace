@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/auth.css';
 
@@ -8,8 +9,9 @@ const ShieldIcon = () => (
     </svg>
 );
 
-export default function LoginPage({ onNavigate }) {
+export default function LoginPage() {
     const { login } = useAuth();
+    const navigate = useNavigate();
     const [email, setEmail]       = useState('');
     const [password, setPassword] = useState('');
     const [error, setError]       = useState('');
@@ -21,7 +23,7 @@ export default function LoginPage({ onNavigate }) {
         setLoading(true);
         try {
             await login(email, password);
-            // AuthContext sets user → App.jsx re-renders to Officials Hub
+            navigate('/');
         } catch (err) {
             const msg = err?.response?.data?.detail || 'Login failed. Please try again.';
             setError(msg);
@@ -74,7 +76,7 @@ export default function LoginPage({ onNavigate }) {
                     </div>
 
                     <div style={{ textAlign: 'right', marginTop: -8 }}>
-                        <button type="button" className="auth-link" onClick={() => onNavigate('forgot')}>
+                        <button type="button" className="auth-link" onClick={() => navigate('/forgot-password')}>
                             Forgot password?
                         </button>
                     </div>
@@ -89,7 +91,7 @@ export default function LoginPage({ onNavigate }) {
 
                 <div className="auth-footer">
                     Don't have an account?{' '}
-                    <button className="auth-link" onClick={() => onNavigate('register')}>
+                    <button className="auth-link" onClick={() => navigate('/register')}>
                         Request access
                     </button>
                 </div>

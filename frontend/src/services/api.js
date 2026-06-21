@@ -9,6 +9,35 @@ const api = axios.create({
     withCredentials: true,
 });
 
+// Response interceptor to handle token refresh automatically
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+        
+        // If error is 401 and we haven't already retried this request
+        if (error.response && error.response.status === 401 && !originalRequest._retry) {
+            // Check if this request was the refresh request itself to avoid infinite loop
+            if (originalRequest.url === '/auth/refresh' || originalRequest.url === '/auth/refresh-token') {
+                return Promise.reject(error);
+            }
+            
+            originalRequest._retry = true;
+            try {
+                // Attempt to refresh the access token cookie using the refresh token cookie
+                await api.post('/auth/refresh');
+                // Retry the original request
+                return api(originalRequest);
+            } catch (refreshError) {
+                // If refreshing fails, clear user session and redirect to login
+                window.location.href = '/login';
+                return Promise.reject(refreshError);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 // ── Data endpoints ────────────────────────────────────────────────────────────
 export const getRiskScores      = async () => (await api.get('/risk-scores')).data;
 export const getHistory         = async (id) => (await api.get(`/history/${id}`)).data;

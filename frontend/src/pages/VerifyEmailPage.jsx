@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/auth.css';
 
 const ShieldIcon = () => (
@@ -7,7 +8,8 @@ const ShieldIcon = () => (
     </svg>
 );
 
-export default function VerifyEmailPage({ onNavigate }) {
+export default function VerifyEmailPage() {
+    const navigate = useNavigate();
     // The backend redirects to /verify-email?verified=1 on success,
     // or the user lands here after clicking the backend's redirect.
     const [status, setStatus] = useState('checking'); // 'checking' | 'success' | 'error'
@@ -50,7 +52,7 @@ export default function VerifyEmailPage({ onNavigate }) {
                             <span>✓</span>
                             <span>Email verified successfully! You can now sign in to the Officials Hub.</span>
                         </div>
-                        <button className="auth-btn" onClick={() => onNavigate('login')}>
+                        <button className="auth-btn" onClick={() => navigate('/login')}>
                             Sign In Now
                         </button>
                     </>
@@ -62,7 +64,7 @@ export default function VerifyEmailPage({ onNavigate }) {
                             <span>⚠</span>
                             <span>Verification link is invalid or has expired. Please request a new one.</span>
                         </div>
-                        <button className="auth-btn" onClick={() => onNavigate('register')}>
+                        <button className="auth-btn" onClick={() => navigate('/register')}>
                             Register Again
                         </button>
                     </>
@@ -77,7 +79,7 @@ export default function VerifyEmailPage({ onNavigate }) {
 
                 <div className="auth-divider" />
                 <div className="auth-footer">
-                    <button className="auth-link" onClick={() => onNavigate('login')}>
+                    <button className="auth-link" onClick={() => navigate('/login')}>
                         ← Back to sign in
                     </button>
                 </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authForgotPassword } from '../services/api';
 import '../styles/auth.css';
 
@@ -8,7 +9,8 @@ const ShieldIcon = () => (
     </svg>
 );
 
-export default function ForgotPasswordPage({ onNavigate }) {
+export default function ForgotPasswordPage() {
+    const navigate = useNavigate();
     const [email, setEmail]     = useState('');
     const [error, setError]     = useState('');
     const [success, setSuccess] = useState('');
@@ -79,7 +81,7 @@ export default function ForgotPasswordPage({ onNavigate }) {
 
                 <div className="auth-divider" />
                 <div className="auth-footer">
-                    <button className="auth-link" onClick={() => onNavigate('login')}>
+                    <button className="auth-link" onClick={() => navigate('/login')}>
                         ← Back to sign in
                     </button>
                 </div>

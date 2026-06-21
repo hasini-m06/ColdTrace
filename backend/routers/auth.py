@@ -268,6 +268,7 @@ def login(body: LoginRequest, request: Request, response: Response):
 # POST /auth/refresh
 # ---------------------------------------------------------------------------
 @router.post("/refresh-token")
+@router.post("/refresh")
 @limiter.limit("30/hour")
 def refresh_token_endpoint(request: Request, response: Response):
     """Issue a new access_token from a valid refresh_token cookie."""
