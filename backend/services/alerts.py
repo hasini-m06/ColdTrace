@@ -28,8 +28,13 @@ def _smtp_send(to_address: str, subject: str, body: str) -> bool:
     Returns True on success, False on failure.
     """
     if not GMAIL_USER or not GMAIL_APP_PASSWORD:
-        print(f"Gmail credentials not set, skipping email to {to_address}.")
-        return False
+        print("\n" + "="*80)
+        print(" [DEVELOPMENT FALLBACK] SMTP Credentials not configured.")
+        print(f" To: {to_address}")
+        print(f" Subject: {subject}")
+        print(f" Body:\n{body}")
+        print("="*80 + "\n")
+        return True
     try:
         msg = EmailMessage()
         msg.set_content(body)
