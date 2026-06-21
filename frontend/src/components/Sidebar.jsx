@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { getHistory } from '../services/api';
 import { Activity, Thermometer, AlertTriangle, RefreshCw } from 'lucide-react';
 
-const Sidebar = ({ summary, location, onRefresh, loading, currentView, onViewChange }) => {
+const Sidebar = ({ summary, location, onRefresh, loading, currentView, onViewChange, user, onLogout }) => {
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ const Sidebar = ({ summary, location, onRefresh, loading, currentView, onViewCha
         <p>Predictive Cold Chain Monitoring</p>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         <button 
           onClick={() => onViewChange('map')}
           style={{ 
@@ -53,12 +53,49 @@ const Sidebar = ({ summary, location, onRefresh, loading, currentView, onViewCha
             color: currentView === 'officials' ? '#ffffff' : '#94a3b8',
             cursor: 'pointer',
             fontWeight: 600,
-            transition: 'background 0.2s'
+            transition: 'background 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '5px'
           }}
         >
+          {!user && <span style={{ fontSize: 11 }}>🔒</span>}
           Officials Hub
         </button>
       </div>
+
+      {/* Logged-in user indicator */}
+      {user && currentView === 'officials' && (
+        <div style={{
+          background: 'rgba(16,185,129,0.08)',
+          border: '1px solid rgba(16,185,129,0.2)',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '12px'
+        }}>
+          <span style={{ color: '#6ee7b7', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
+            ✓ {user.email}
+          </span>
+          <button
+            onClick={onLogout}
+            style={{
+              background: 'none', border: 'none', color: '#94a3b8',
+              cursor: 'pointer', fontSize: '11px', fontWeight: 600,
+              padding: '2px 6px', borderRadius: '4px',
+              transition: 'color 0.2s'
+            }}
+            onMouseEnter={e => e.target.style.color = '#ef4444'}
+            onMouseLeave={e => e.target.style.color = '#94a3b8'}
+          >
+            Sign out
+          </button>
+        </div>
+      )}
 
       <div className="stats-grid">
         <div className="stat-box red">
