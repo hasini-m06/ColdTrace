@@ -162,30 +162,26 @@ def register(body: RegisterRequest, request: Request):
         return generic_ok
 
     pw_hash     = hash_password(body.password)
-    v_token     = generate_secure_token()
-    v_expires   = _utc_str(_utc_now() + timedelta(hours=24))
 
     execute_query(
         """INSERT INTO users
            (email, password_hash, is_verified, verification_token, verification_expires)
-           VALUES (?, ?, 0, ?, ?)""",
-        (body.email, pw_hash, v_token, v_expires),
+           VALUES (?, ?, 1, NULL, NULL)""",
+        (body.email, pw_hash),
     )
 
-    verify_link = f"{FRONTEND_URL}/verify-email?token={v_token}"
     send_email_to(
         body.email,
-        subject="Verify your ColdTrace account",
+        subject="Welcome to ColdTrace!",
         body=(
             f"Welcome to ColdTrace!\n\n"
-            f"Please verify your email address by clicking the link below.\n"
-            f"This link expires in 24 hours.\n\n"
-            f"{verify_link}\n\n"
-            f"If you did not create this account, you can safely ignore this email."
+            f"Your account has been registered successfully.\n"
+            f"You can now log in directly at: {FRONTEND_URL}/login\n\n"
+            f"Thank you for using ColdTrace!"
         ),
     )
 
-    return generic_ok
+    return {"message": "Registration successful! You can now log in directly."}
 
 # ---------------------------------------------------------------------------
 # GET /auth/verify-email?token=xxx

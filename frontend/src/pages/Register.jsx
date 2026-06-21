@@ -48,7 +48,7 @@ export default function Register() {
         setLoading(true);
         try {
             const res = await register(email.trim(), password);
-            setSuccess(res.message || 'Check your email to verify your account.');
+            setSuccess(res.message || 'Registration successful! You can now log in directly.');
             setEmail('');
             setPassword('');
             setConfirm('');
@@ -71,11 +71,11 @@ export default function Register() {
                     <p>Predictive Cold Chain Monitoring</p>
                 </div>
 
-                <p className="auth-title">Request Officials Access</p>
+                <p className="auth-title">Register Officials Account</p>
 
                 <div className="auth-info" style={{ marginBottom: 20 }}>
-                    After registering, you'll receive a verification email. Once verified,
-                    you can log in to the Officials Alert Hub.
+                    Create an account to access the Officials Alert Hub.
+                    Once registered, you can log in directly.
                 </div>
 
                 {error   && <div className="auth-error"   style={{ marginBottom: 16 }}><span>⚠</span><span>{error}</span></div>}

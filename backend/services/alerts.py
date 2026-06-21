@@ -22,7 +22,7 @@ from core.config import settings, GMAIL_USER, GMAIL_APP_PASSWORD
 # ---------------------------------------------------------------------------
 # Low-level SMTP helper (shared by both send_email_alert and send_email_to)
 # ---------------------------------------------------------------------------
-def _smtp_send(to_address: str, subject: str, body: str) -> bool:
+def _smtp_send(to_address: str, subject: str, body: str, html_body: str = None) -> bool:
     """
     Open one SMTP_SSL connection and send a single message.
     Returns True on success, False on failure.
@@ -33,11 +33,15 @@ def _smtp_send(to_address: str, subject: str, body: str) -> bool:
         print(f" To: {to_address}")
         print(f" Subject: {subject}")
         print(f" Body:\n{body}")
+        if html_body:
+            print(f" HTML Body (first 300 chars):\n{html_body[:300]}...")
         print("="*80 + "\n")
         return True
     try:
         msg = EmailMessage()
         msg.set_content(body)
+        if html_body:
+            msg.add_alternative(html_body, subtype='html')
         msg['Subject'] = subject
         msg['From']    = GMAIL_USER
         msg['To']      = to_address
@@ -161,7 +165,9 @@ def send_alerts_digest(triggered_alerts: list):
     Send a single summary email digest of all critical alerts triggered in this cycle.
     Also inserts alert records into the database.
     """
+    import os
     from database.db import execute_query, fetch_all
+    from datetime import datetime
 
     if not triggered_alerts:
         return
@@ -177,43 +183,183 @@ def send_alerts_digest(triggered_alerts: list):
         except Exception as e:
             print(f"Error saving alert to DB: {e}")
 
-    # 2. Build email body
+    # 2. Build plain text email body (fallback)
     subject = f"ColdTrace Digest: {len(triggered_alerts)} Critical Cold Chain Alerts"
-    body = f"ColdTrace has predicted potential cold chain breaches at {len(triggered_alerts)} facility/facilities:\n\n"
+    plain_body = f"ColdTrace has predicted potential cold chain breaches at {len(triggered_alerts)} facility/facilities:\n\n"
     
     for idx, alert in enumerate(triggered_alerts, 1):
-        body += f"{idx}. {alert['location_name']} ({alert['district']})\n"
-        body += f"   Risk Score: {alert['score']:.1f}\n"
-        body += f"   Top Factors: {', '.join(alert['top_feats'])}\n\n"
+        ts = alert.get('timestamp') or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+        plain_body += f"{idx}. {alert['location_name']} ({alert['district']})\n"
+        plain_body += f"   Timestamp: {ts}\n"
+        plain_body += f"   Risk Score: {alert['score']:.1f}\n"
+        plain_body += f"   Top Factors: {', '.join(alert['top_feats'])}\n\n"
         
-    body += "Recommended Action: Review these facilities on the Officials Dashboard and coordinate preventive maintenance."
+    plain_body += "Recommended Action: Review these facilities on the Officials Dashboard and coordinate preventive maintenance."
 
-    # 3. Find subscribers (send digest to verified emails)
-    subscribers = fetch_all(
-        """SELECT DISTINCT u.email FROM users u
-           JOIN alert_preferences ap ON ap.user_id = u.id
-           WHERE u.is_verified = 1"""
-    )
+    # 3. Build HTML tabular email body
+    html_rows = ""
+    for alert in triggered_alerts:
+        ts = alert.get('timestamp') or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+        
+        # Clean feature tags
+        feat_tags = "".join(f"<span class='feature-tag'>{feat.replace('_', ' ')}</span>" for feat in alert['top_feats'])
+        
+        html_rows += f"""
+        <tr>
+          <td style="white-space: nowrap;">{ts}</td>
+          <td><strong>{alert['location_name']}</strong></td>
+          <td>{alert['district']}</td>
+          <td><span class="badge-red">{alert['score']:.1f}</span></td>
+          <td>{feat_tags}</td>
+        </tr>
+        """
+        
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body {{
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #1e293b;
+    background-color: #f8fafc;
+    margin: 0;
+    padding: 20px;
+  }}
+  .container {{
+    max-width: 750px;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+    margin: 0 auto;
+    border-top: 4px solid #ef4444;
+  }}
+  h2 {{
+    color: #ef4444;
+    margin-top: 0;
+    font-size: 20px;
+  }}
+  p {{
+    font-size: 15px;
+    line-height: 1.5;
+    color: #475569;
+  }}
+  table {{
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 13px;
+  }}
+  th {{
+    background-color: #0f172a;
+    color: #ffffff;
+    text-align: left;
+    padding: 12px 10px;
+    font-weight: 600;
+  }}
+  td {{
+    padding: 12px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+  }}
+  tr:nth-child(even) {{
+    background-color: #f8fafc;
+  }}
+  .badge-red {{
+    background-color: #fee2e2;
+    color: #ef4444;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }}
+  .feature-tag {{
+    background-color: #f1f5f9;
+    color: #475569;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    margin-right: 4px;
+    display: inline-block;
+    border: 1px solid #e2e8f0;
+  }}
+  .footer {{
+    font-size: 11px;
+    color: #94a3b8;
+    text-align: center;
+    margin-top: 24px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 16px;
+  }}
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>ColdTrace Cold Chain Alerts Digest</h2>
+    <p>ColdTrace has predicted potential cold chain breaches at <strong>{len(triggered_alerts)}</strong> facility/facilities during the latest run cycle:</p>
     
-    if not subscribers:
-        print("[alerts] No verified subscribers — skipping digest email.")
-        # Print fallback to console for local testing
-        if not GMAIL_USER or not GMAIL_APP_PASSWORD:
-            print("\n" + "="*80)
-            print(" [DEVELOPMENT FALLBACK] SMTP Credentials not configured (No subscribers).")
-            print(f" Digest Subject: {subject}")
-            print(f" Digest Body:\n{body}")
-            print("="*80 + "\n")
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Facility</th>
+          <th>District</th>
+          <th>Risk Score</th>
+          <th>Top Risk Factors</th>
+        </tr>
+      </thead>
+      <tbody>
+        {html_rows}
+      </tbody>
+    </table>
+    
+    <p><strong>Recommended Action:</strong> Pre-position backup stock, coordinate preventive maintenance, and escalate critical breaches to the district manager.</p>
+    
+    <div class="footer">
+      This is an automated digest sent by the ColdTrace vaccine monitoring platform.
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+    # 4. Find subscribers (send digest to verified emails)
+    # We will ALWAYS include GMAIL_USER if configured, so the primary operator gets the alert as requested.
+    recipients = set()
+    if GMAIL_USER:
+        recipients.add(GMAIL_USER)
+
+    try:
+        subscribers = fetch_all(
+            """SELECT DISTINCT u.email FROM users u
+               JOIN alert_preferences ap ON ap.user_id = u.id
+               WHERE u.is_verified = 1"""
+        )
+        for row in subscribers:
+            recipients.add(row['email'])
+    except Exception as e:
+        print(f"Error fetching subscribers from DB: {e}")
+
+    # Also read any custom environment variable for static recipient list
+    custom_emails = os.getenv("ALERT_RECIPIENT_EMAILS", "")
+    if custom_emails:
+        for email in custom_emails.split(","):
+            email = email.strip()
+            if email:
+                recipients.add(email)
+
+    if not recipients:
+        print("[alerts] No verified subscribers or configured recipient emails — skipping email broadcast.")
         return
 
     sent = 0
-    for row in subscribers:
-        if _smtp_send(row['email'], subject, body):
+    for email in recipients:
+        if _smtp_send(email, subject, plain_body, html_body):
             sent += 1
-            
-    print(f"[alerts] Sent digest email to {sent} subscriber(s).")
 
-    # 4. Send SMS (send 1 single digest alert to static list)
+    print(f"[alerts] Sent digest email to {sent} subscriber(s): {list(recipients)}")
+
+    # 5. Send SMS (send 1 single digest alert to static list)
     sms_msg = f"ColdTrace Digest: {len(triggered_alerts)} facilities at risk. Check dashboard."
     send_sms_alert(sms_msg)
 
