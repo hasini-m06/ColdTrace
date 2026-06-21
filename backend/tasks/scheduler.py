@@ -2,8 +2,8 @@ from database.db import get_db, execute_query, fetch_all, fetch_one
 from fetchers.overpass import fetch_phc_locations
 from fetchers.datagovin import fetch_hmis_wastage, fetch_power_outage
 from fetchers.whopis import get_equipment_reliability
-from ml.pipeline import train_initial_model, predict_risk, extract_features
-from services.alerts import trigger_alerts
+from ml.pipeline import train_initial_model, predict_risk, extract_features, get_deterministic_wastage, get_deterministic_outage, get_deterministic_temp_delta, get_deterministic_current_temp
+from services.alerts import send_alerts_digest
 from core.config import settings
 import json
 import time
@@ -43,16 +43,34 @@ def run_cycle():
     train_initial_model(db_locations, all_wastage, all_outages, temp_deltas)
     
     print("Predicting scores...")
+    triggered_alerts = []
+    
     for loc in db_locations:
         dist = loc['district'].lower()
-        # Use same deterministic fallback values as training — random fallbacks
-        # cause train/predict distribution mismatch that snaps scores to 0 or 100.
+        
+        # Use database values if present, otherwise fallback to deterministic variance
         median_wastage = 0.05
         median_outage  = 2
-        wastage    = all_wastage.get(dist, median_wastage)
-        outage     = all_outages.get(dist, median_outage)
-        temp_delta = temp_deltas.get(loc['id'], 5.0)
-        ct         = current_temps.get(loc['id'], 30.0)
+        
+        if dist and dist != 'unknown' and all_wastage and dist in all_wastage:
+            wastage = all_wastage[dist]
+        else:
+            wastage = get_deterministic_wastage(loc['id'], median_wastage)
+
+        if dist and dist != 'unknown' and all_outages and dist in all_outages:
+            outage = all_outages[dist]
+        else:
+            outage = get_deterministic_outage(loc['id'], median_outage)
+
+        if temp_deltas and loc['id'] in temp_deltas:
+            temp_delta = temp_deltas[loc['id']]
+        else:
+            temp_delta = get_deterministic_temp_delta(loc['id'])
+
+        if current_temps and loc['id'] in current_temps:
+            ct = current_temps[loc['id']]
+        else:
+            ct = get_deterministic_current_temp(loc['id'])
 
         # Same deterministic formula as pipeline.py training — must match exactly
         equip_score = int((loc['id'] * 37) % 80) + 20
@@ -71,6 +89,17 @@ def run_cycle():
         ''', (loc['id'], score, feats_json, ct, wastage))
         
         if score >= settings.alerts.score_threshold:
-            trigger_alerts(loc['id'], loc['name'], loc['district'], score, top_feats)
+            triggered_alerts.append({
+                "location_id": loc['id'],
+                "location_name": loc['name'],
+                "district": loc['district'],
+                "score": score,
+                "top_feats": top_feats
+            })
+
+    # Send a single combined digest email/SMS instead of hundreds of separate requests
+    if triggered_alerts:
+        print(f"Sending digest for {len(triggered_alerts)} critical alerts...")
+        send_alerts_digest(triggered_alerts)
 
     print("Cycle complete.")

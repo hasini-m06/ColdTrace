@@ -1,23 +1,23 @@
 {
   "eval_method": "stratified_5fold_cv",
   "n_samples": 500,
-  "positive_label_frac": 0.146,
+  "positive_label_frac": 0.15,
   "label_type": "heuristic_bootstrap_NOT_ground_truth",
-  "recall": 0.9178,
-  "precision": 0.9571,
-  "f1": 0.9371,
+  "recall": 0.8267,
+  "precision": 0.9688,
+  "f1": 0.8921,
   "confusion_matrix": [
     [
-      424,
-      3
+      423,
+      2
     ],
     [
-      6,
-      67
+      13,
+      62
     ]
   ],
-  "classification_report": "              precision    recall  f1-score   support\n\n           0       0.99      0.99      0.99       427\n           1       0.96      0.92      0.94        73\n\n    accuracy                           0.98       500\n   macro avg       0.97      0.96      0.96       500\nweighted avg       0.98      0.98      0.98       500\n",
-  "trained_at": "2026-06-21T07:55:47.336300Z",
+  "classification_report": "              precision    recall  f1-score   support\n\n           0       0.97      1.00      0.98       425\n           1       0.97      0.83      0.89        75\n\n    accuracy                           0.97       500\n   macro avg       0.97      0.91      0.94       500\nweighted avg       0.97      0.97      0.97       500\n",
+  "trained_at": "2026-06-21T09:34:36.430519Z",
   "features_used": [
     "historical_wastage_rate",
     "max_forecast_temp_delta_48h",

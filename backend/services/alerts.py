@@ -154,3 +154,66 @@ def trigger_alerts(location_id: int, location_name: str, district: str,
         "INSERT INTO alerts (location_id, score, message) VALUES (?, ?, ?)",
         (location_id, score, sms_body)
     )
+
+
+def send_alerts_digest(triggered_alerts: list):
+    """
+    Send a single summary email digest of all critical alerts triggered in this cycle.
+    Also inserts alert records into the database.
+    """
+    from database.db import execute_query, fetch_all
+
+    if not triggered_alerts:
+        return
+
+    # 1. Insert alert records into DB so the dashboard alert table is populated
+    for alert in triggered_alerts:
+        sms_body = f"ColdTrace ALERT: {alert['location_name']} risk {alert['score']:.1f}. Check dashboard."
+        try:
+            execute_query(
+                "INSERT INTO alerts (location_id, score, message) VALUES (?, ?, ?)",
+                (alert['location_id'], alert['score'], sms_body)
+            )
+        except Exception as e:
+            print(f"Error saving alert to DB: {e}")
+
+    # 2. Build email body
+    subject = f"ColdTrace Digest: {len(triggered_alerts)} Critical Cold Chain Alerts"
+    body = f"ColdTrace has predicted potential cold chain breaches at {len(triggered_alerts)} facility/facilities:\n\n"
+    
+    for idx, alert in enumerate(triggered_alerts, 1):
+        body += f"{idx}. {alert['location_name']} ({alert['district']})\n"
+        body += f"   Risk Score: {alert['score']:.1f}\n"
+        body += f"   Top Factors: {', '.join(alert['top_feats'])}\n\n"
+        
+    body += "Recommended Action: Review these facilities on the Officials Dashboard and coordinate preventive maintenance."
+
+    # 3. Find subscribers (send digest to verified emails)
+    subscribers = fetch_all(
+        """SELECT DISTINCT u.email FROM users u
+           JOIN alert_preferences ap ON ap.user_id = u.id
+           WHERE u.is_verified = 1"""
+    )
+    
+    if not subscribers:
+        print("[alerts] No verified subscribers — skipping digest email.")
+        # Print fallback to console for local testing
+        if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+            print("\n" + "="*80)
+            print(" [DEVELOPMENT FALLBACK] SMTP Credentials not configured (No subscribers).")
+            print(f" Digest Subject: {subject}")
+            print(f" Digest Body:\n{body}")
+            print("="*80 + "\n")
+        return
+
+    sent = 0
+    for row in subscribers:
+        if _smtp_send(row['email'], subject, body):
+            sent += 1
+            
+    print(f"[alerts] Sent digest email to {sent} subscriber(s).")
+
+    # 4. Send SMS (send 1 single digest alert to static list)
+    sms_msg = f"ColdTrace Digest: {len(triggered_alerts)} facilities at risk. Check dashboard."
+    send_sms_alert(sms_msg)
+

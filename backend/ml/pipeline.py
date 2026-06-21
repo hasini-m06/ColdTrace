@@ -68,6 +68,24 @@ def extract_features(location, current_temp, temp_delta, wastage_rate, outage_co
     }
 
 
+def get_deterministic_wastage(loc_id: int, base_median: float = 0.05) -> float:
+    # returns a wastage between 0.02 and 0.09 based on location id
+    shift = ((loc_id * 13) % 8) * 0.01
+    return 0.02 + shift
+
+def get_deterministic_outage(loc_id: int, base_median: int = 2) -> int:
+    # returns outage count between 0 and 4 based on location id
+    return (loc_id * 7) % 5
+
+def get_deterministic_temp_delta(loc_id: int, default_val: float = 5.0) -> float:
+    # returns temp delta between 3.0 and 7.0
+    return 3.0 + ((loc_id * 19) % 6) * 0.8
+
+def get_deterministic_current_temp(loc_id: int, default_val: float = 30.0) -> float:
+    # returns current temp between 24.0 and 32.8
+    return 24.0 + ((loc_id * 23) % 12) * 0.8
+
+
 def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
     """
     Bootstrap initial RandomForest model using a heuristic-synthesised target variable.
@@ -93,14 +111,29 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
 
     for loc in locations:
         dist      = loc['district'].lower()
-        wastage   = all_wastage.get(dist, median_wastage)
-        outage    = all_outages.get(dist, median_outage)
-        temp_delta = all_temp_deltas.get(loc['id'], 5.0)
+        
+        # Use database values if present and valid, otherwise fallback to deterministic variance
+        if dist and dist != 'unknown' and all_wastage and dist in all_wastage:
+            wastage = all_wastage[dist]
+        else:
+            wastage = get_deterministic_wastage(loc['id'], median_wastage)
+
+        if dist and dist != 'unknown' and all_outages and dist in all_outages:
+            outage = all_outages[dist]
+        else:
+            outage = get_deterministic_outage(loc['id'], median_outage)
+
+        if all_temp_deltas and loc['id'] in all_temp_deltas:
+            temp_delta = all_temp_deltas[loc['id']]
+        else:
+            temp_delta = get_deterministic_temp_delta(loc['id'])
+
+        current_temp = get_deterministic_current_temp(loc['id'])
 
         # Use a fixed equipment score seeded by location id for reproducibility
         equip_score = int((loc['id'] * 37) % 80) + 20  # deterministic 20-100 range
 
-        features = extract_features(loc, 30.0, temp_delta, wastage, outage, equip_score)
+        features = extract_features(loc, current_temp, temp_delta, wastage, outage, equip_score)
 
         # Heuristic risk formula (domain-expert weighted combination)
         risk_score = (
@@ -112,6 +145,7 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
         )
         all_scores.append(risk_score)
         location_data.append(features)
+
 
     # ------------------------------------------------------------------
     # 2. Synthesise binary labels (heuristic bootstrap — NOT ground truth)
@@ -218,17 +252,32 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
     final_calibrated = CalibratedClassifierCV(rf_final, method='sigmoid', cv=3)
     final_calibrated.fit(df, y)
     joblib.dump(final_calibrated, MODEL_PATH)
+    clear_model_cache()
     print(f"[ColdTrace ML] Final calibrated model trained on full dataset and saved to {MODEL_PATH}")
+
+
+_MODEL_CACHE = None
+
+def clear_model_cache():
+    global _MODEL_CACHE
+    _MODEL_CACHE = None
+
+def get_model():
+    global _MODEL_CACHE
+    if _MODEL_CACHE is None:
+        if os.path.exists(MODEL_PATH):
+            _MODEL_CACHE = joblib.load(MODEL_PATH)
+    return _MODEL_CACHE
 
 
 def predict_risk(features_dict) -> tuple:
     """
     Returns (risk_probability_0_to_100, top_3_contributing_features).
     """
-    if not os.path.exists(MODEL_PATH):
+    model = get_model()
+    if model is None:
         return 50.0, ["model_not_trained"]
 
-    model = joblib.load(MODEL_PATH)
     df    = pd.DataFrame([features_dict])
 
     prob = model.predict_proba(df)[0][1] * 100
