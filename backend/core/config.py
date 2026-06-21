@@ -55,18 +55,21 @@ FRONTEND_URL        = os.getenv("FRONTEND_URL", "http://localhost:5173")
 # running with an insecure blank/default key.
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")
 
-_ENV = os.getenv("ENVIRONMENT", "development")
-if _ENV != "development" and not JWT_SECRET_KEY:
-    raise RuntimeError(
-        "JWT_SECRET_KEY environment variable is not set. "
-        "Generate one with: python -c \"import secrets; print(secrets.token_hex(64))\" "
-        "and set it in your Render environment variables."
-    )
+# Unsafe fallback placeholder is strictly forbidden unless ALLOW_INSECURE_DEV_KEY=true is explicitly set.
+_ALLOW_INSECURE = os.getenv("ALLOW_INSECURE_DEV_KEY", "").lower() == "true"
 
-# Fall back to a dev-only placeholder so local runs work without env vars.
-# This value is intentionally NOT a secret — it must be overridden in production.
 if not JWT_SECRET_KEY:
-    JWT_SECRET_KEY = "dev-only-insecure-placeholder-change-in-production"
+    if _ALLOW_INSECURE:
+        JWT_SECRET_KEY = "dev-only-insecure-placeholder-change-in-production"
+    else:
+        raise RuntimeError(
+            "CRITICAL SECURITY ERROR: JWT_SECRET_KEY environment variable is not set. "
+            "To resolve this, generate a secure random secret key with:\n"
+            "  python -c \"import secrets; print(secrets.token_hex(64))\"\n"
+            "and set it as the JWT_SECRET_KEY environment variable.\n"
+            "For local development ONLY, you can bypass this requirement by setting "
+            "the environment variable: ALLOW_INSECURE_DEV_KEY=true"
+        )
 
 JWT_ALGORITHM       = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES  = 15
