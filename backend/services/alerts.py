@@ -24,6 +24,32 @@ def send_email_alert(subject: str, body: str):
     except Exception as e:
         print(f"Failed to send email: {e}")
 
+
+def send_email_to(to_address: str, subject: str, body: str):
+    """
+    Send an email to a specific recipient address.
+    Used by auth flows (email verification, password reset).
+    Reuses the same Gmail SMTP credentials as send_email_alert — no duplication.
+    """
+    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+        print(f"Gmail credentials not set, skipping email to {to_address}.")
+        return
+
+    msg = EmailMessage()
+    msg.set_content(body)
+    msg['Subject'] = subject
+    msg['From'] = GMAIL_USER
+    msg['To'] = to_address
+
+    try:
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        print(f"Email sent to {to_address}: {subject}")
+    except Exception as e:
+        print(f"Failed to send email to {to_address}: {e}")
+
 def send_sms_alert(message: str):
     for recipient in settings.alerts.sms_recipients:
         try:

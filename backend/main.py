@@ -1,10 +1,11 @@
 """
 ColdTrace API — main.py
 Security layer:
-  - CORS restricted to FRONTEND_URL env var (no wildcard).
-  - POST /refresh requires X-Admin-Key header matching ADMIN_API_KEY env var → 401 otherwise.
-  - Rate limiting via slowapi: 30/min on GET endpoints, 5/hour on /refresh.
-  - Audit log (SQLite access_log table) records /refresh hits and failed auth attempts.
+  - CORS restricted to FRONTEND_URL env var (no wildcard), credentials allowed.
+  - POST /refresh is public but rate-limited (5/hour per IP) and audit-logged.
+  - Full JWT auth via /auth/* endpoints (see routers/auth.py).
+  - Rate limiting via slowapi: 30/min on GET, 5/hour on /refresh.
+  - Audit log (SQLite access_log table) records key events.
 """
 
 import os
@@ -21,14 +22,16 @@ from slowapi.errors import RateLimitExceeded
 
 from database.db import init_db, fetch_all, fetch_one, execute_query
 from tasks.scheduler import run_cycle
-from core.config import settings
+from core.config import settings, FRONTEND_URL
+from routers.auth import router as auth_router
 from apscheduler.schedulers.background import BackgroundScheduler
 import uvicorn
 
 # ---------------------------------------------------------------------------
 # Environment config
 # ---------------------------------------------------------------------------
-FRONTEND_URL  = os.getenv("FRONTEND_URL", "http://localhost:5173")
+# FRONTEND_URL is imported from core/config.py (single source of truth).
+# ADMIN_API_KEY is reserved for future internal-only endpoints — see comment below.
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")   # Must be set on Render — see .env.example
 
 # ---------------------------------------------------------------------------
@@ -40,14 +43,20 @@ app = FastAPI(title="ColdTrace API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Include auth router — all endpoints under /auth/*
+app.include_router(auth_router)
+
 # ---------------------------------------------------------------------------
-# CORS — restricted to actual frontend origin only
+# CORS — restricted to actual frontend origin, credentials enabled
 # ---------------------------------------------------------------------------
+# allow_credentials=True is required for httpOnly cookies to be sent
+# cross-origin (Vercel frontend → Render backend).
+# With allow_credentials=True the origin MUST be explicit — no wildcard.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],   # NOT "*" — only the deployed Vercel URL
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_origins=[FRONTEND_URL, "http://localhost:5173"],  # explicit, never "*"
+    allow_credentials=True,   # required for cookie-based auth
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 

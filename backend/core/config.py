@@ -41,6 +41,7 @@ DATA_GOV_IN_API_KEY = os.getenv("DATA_GOV_IN_API_KEY", "")
 GMAIL_USER          = os.getenv("GMAIL_USER", "")
 GMAIL_APP_PASSWORD  = os.getenv("GMAIL_APP_PASSWORD", "")
 ADMIN_API_KEY       = os.getenv("ADMIN_API_KEY", "")
+FRONTEND_URL        = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 # ---------------------------------------------------------------------------
 # JWT configuration
