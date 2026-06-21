@@ -109,10 +109,26 @@ def _audit_log(endpoint: str, ip: str, success: bool = True):
 @app.on_event("startup")
 def startup_event():
     init_db()   # creates all tables including access_log
+    
+    # Seed the demo user eventgridsmiths@gmail.com so it always exists and is verified in production
+    try:
+        from core.security import hash_password
+        demo_user = fetch_one("SELECT * FROM users WHERE email = ?", ("eventgridsmiths@gmail.com",))
+        if not demo_user:
+            demo_pw_hash = hash_password("AHHR1234")
+            execute_query(
+                "INSERT INTO users (email, password_hash, is_verified) VALUES (?, ?, 1)",
+                ("eventgridsmiths@gmail.com", demo_pw_hash)
+            )
+            print("Successfully seeded demo user: eventgridsmiths@gmail.com")
+    except Exception as e:
+        print(f"Error seeding demo user: {e}")
+
     scheduler.add_job(run_cycle, 'interval', hours=settings.app.schedule_interval_hours)
     scheduler.start()
     # Trigger initial cycle asynchronously so startup is non-blocking
     threading.Thread(target=run_cycle, daemon=True).start()
+
 
 
 @app.on_event("shutdown")
