@@ -5,12 +5,11 @@ apscheduler
 scikit-learn
 pandas
 numpy
-imbalanced-learn
 joblib
 pyyaml
 beautifulsoup4
 slowapi
-passlib[bcrypt]
+bcrypt
 python-jose[cryptography]
 python-multipart
 email-validator
