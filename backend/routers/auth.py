@@ -206,6 +206,26 @@ def verify_email(token: str):
     # Return a JSON success response
     return {"message": "Email verified successfully."}
 
+
+# ---------------------------------------------------------------------------
+# GET /auth/verify-direct?email=xxx
+# ---------------------------------------------------------------------------
+@router.get("/verify-direct")
+def verify_direct(email: str):
+    """
+    Directly verify a user in the database without needing an email link.
+    Useful for testing and demos when SMTP is not configured.
+    """
+    user = fetch_one("SELECT * FROM users WHERE email = ?", (email.strip(),))
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User with email '{email}' not found.")
+
+    execute_query(
+        "UPDATE users SET is_verified = 1, verification_token = NULL, verification_expires = NULL WHERE id = ?",
+        (user["id"],),
+    )
+    return {"message": f"Successfully verified user '{email}' directly in the database!"}
+
 # ---------------------------------------------------------------------------
 # POST /auth/login
 # ---------------------------------------------------------------------------
