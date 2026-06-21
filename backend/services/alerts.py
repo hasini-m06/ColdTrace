@@ -24,9 +24,45 @@ from core.config import settings, GMAIL_USER, GMAIL_APP_PASSWORD
 # ---------------------------------------------------------------------------
 def _smtp_send(to_address: str, subject: str, body: str, html_body: str = None) -> bool:
     """
-    Open one SMTP_SSL connection and send a single message.
-    Returns True on success, False on failure.
+    Send a single email message.
+    Uses Resend HTTPS API if RESEND_API_KEY is configured (to bypass Render's SMTP port blocks),
+    otherwise falls back to GMAIL SMTP SSL.
     """
+    import os
+    resend_key = os.getenv("RESEND_API_KEY", "")
+    if resend_key:
+        try:
+            resp = requests.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {resend_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "from": "ColdTrace Alerts <onboarding@resend.dev>",
+                    "to": [to_address],
+                    "subject": subject,
+                    "html": html_body or f"<pre>{body}</pre>",
+                    "text": body
+                },
+                timeout=15
+            )
+            if resp.status_code in [200, 201, 202]:
+                return True
+            else:
+                print(f"Resend HTTP API failed with status {resp.status_code}: {resp.text}")
+                return False
+        except Exception as e:
+            print(f"Error sending email via Resend HTTP API: {e}")
+            return False
+
+    # Check Render environment warn
+    if os.getenv("RENDER") == "true" or os.getenv("RENDER_SERVICE_ID"):
+        print("\n" + "!"*80)
+        print(" [WARNING] You are running on Render where SMTP ports are blocked.")
+        print(" To send emails, please configure the RESEND_API_KEY environment variable.")
+        print("!"*80 + "\n")
+
     if not GMAIL_USER or not GMAIL_APP_PASSWORD:
         print("\n" + "="*80)
         print(" [DEVELOPMENT FALLBACK] SMTP Credentials not configured.")
@@ -37,6 +73,7 @@ def _smtp_send(to_address: str, subject: str, body: str, html_body: str = None) 
             print(f" HTML Body (first 300 chars):\n{html_body[:300]}...")
         print("="*80 + "\n")
         return True
+
     try:
         msg = EmailMessage()
         msg.set_content(body)
