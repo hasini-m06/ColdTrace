@@ -10,3 +10,7 @@ joblib
 pyyaml
 beautifulsoup4
 slowapi
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart
+email-validator
