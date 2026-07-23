@@ -248,12 +248,11 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
     # ------------------------------------------------------------------
     # 5. Re-train final model on FULL dataset (standard practice after CV)
     # ------------------------------------------------------------------
-    rf_final = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")
-    final_calibrated = CalibratedClassifierCV(rf_final, method='sigmoid', cv=3)
-    final_calibrated.fit(df, y)
-    joblib.dump(final_calibrated, MODEL_PATH)
+    rf_final = RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced", min_samples_leaf=3)
+    rf_final.fit(df, y)
+    joblib.dump(rf_final, MODEL_PATH)
     clear_model_cache()
-    print(f"[ColdTrace ML] Final calibrated model trained on full dataset and saved to {MODEL_PATH}")
+    print(f"[ColdTrace ML] Final model trained on full dataset and saved to {MODEL_PATH}")
 
 
 _MODEL_CACHE = None
