@@ -114,6 +114,7 @@ def run_cycle():
                 "district": loc['district'],
                 "score": score,
                 "top_feats": top_feats,
+                "temperature": ct,
                 "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
             })
 

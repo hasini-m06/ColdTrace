@@ -111,17 +111,10 @@ def _audit_log(endpoint: str, ip: str, success: bool = True):
 def startup_event():
     init_db()   # creates all tables including access_log
     
-    # Seed the demo user using a pre-hashed password (safe for version control - no plaintext secrets)
+    # ALWAYS WIPE AND SEED FOR DEMO
     try:
-        demo_user = fetch_one("SELECT * FROM users WHERE email = ?", ("eventgridsmiths@gmail.com",))
-        if not demo_user:
-            # Bcrypt hash of 'AHHR1234'
-            demo_pw_hash = "$2b$12$n9GNzmsbNdV8welPi4sBLugkz1INviyf0XEzXTtN8ytjOX0igwtUS"
-            execute_query(
-                "INSERT INTO users (email, password_hash, is_verified) VALUES (?, ?, 1)",
-                ("eventgridsmiths@gmail.com", demo_pw_hash)
-            )
-            print("Successfully seeded demo user: eventgridsmiths@gmail.com")
+        from seed_user import run_seed
+        run_seed()
     except Exception as e:
         print(f"Error seeding demo user: {e}")
 

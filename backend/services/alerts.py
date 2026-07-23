@@ -226,8 +226,10 @@ def send_alerts_digest(triggered_alerts: list):
     
     for idx, alert in enumerate(triggered_alerts, 1):
         ts = alert.get('timestamp') or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+        temp = alert.get('temperature', 0)
         plain_body += f"{idx}. {alert['location_name']} ({alert['district']})\n"
         plain_body += f"   Timestamp: {ts}\n"
+        plain_body += f"   Temperature: {temp:.1f}°C\n"
         plain_body += f"   Risk Score: {alert['score']:.1f}\n"
         plain_body += f"   Top Factors: {', '.join(alert['top_feats'])}\n\n"
         
@@ -237,6 +239,7 @@ def send_alerts_digest(triggered_alerts: list):
     html_rows = ""
     for alert in triggered_alerts:
         ts = alert.get('timestamp') or datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+        temp = f"{alert.get('temperature', 0):.1f}&deg;C"
         
         # Clean feature tags
         feat_tags = "".join(f"<span class='feature-tag'>{feat.replace('_', ' ')}</span>" for feat in alert['top_feats'])
@@ -246,6 +249,7 @@ def send_alerts_digest(triggered_alerts: list):
           <td style="white-space: nowrap;">{ts}</td>
           <td><strong>{alert['location_name']}</strong></td>
           <td>{alert['district']}</td>
+          <td>{temp}</td>
           <td><span class="badge-red">{alert['score']:.1f}</span></td>
           <td>{feat_tags}</td>
         </tr>
@@ -256,8 +260,9 @@ def send_alerts_digest(triggered_alerts: list):
 <head>
 <style>
   body {{
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #1e293b;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #333;
+    line-height: 1.5;
     background-color: #f8fafc;
     margin: 0;
     padding: 20px;
@@ -341,6 +346,7 @@ def send_alerts_digest(triggered_alerts: list):
           <th>Timestamp</th>
           <th>Facility</th>
           <th>District</th>
+          <th>Temp</th>
           <th>Risk Score</th>
           <th>Top Risk Factors</th>
         </tr>
