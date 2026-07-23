@@ -336,6 +336,31 @@ const Sidebar = ({ summary, location, onRefresh, loading, currentView, onViewCha
                     </span>
                   ))}
                 </div>
+                {location.top_features && location.top_features.length >= 2 && (
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '10px', fontStyle: 'italic', background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px', borderLeft: '2px solid #3b82f6' }}>
+                    This score is primarily driven by <strong>{
+                      {
+                        historical_wastage_rate: 'historical wastage',
+                        max_forecast_temp_delta_48h: 'temperature fluctuations',
+                        rolling_power_outage_count_7d: 'recent power outages',
+                        monsoon_season_flag: 'monsoon conditions',
+                        equipment_reliability_score: 'equipment reliability',
+                        days_since_last_maintenance: 'maintenance delays',
+                        stock_utilization_pct: 'stock utilization'
+                      }[location.top_features[0]] || location.top_features[0].replace(/_/g, ' ')
+                    }</strong> and <strong>{
+                      {
+                        historical_wastage_rate: 'historical wastage',
+                        max_forecast_temp_delta_48h: 'temperature fluctuations',
+                        rolling_power_outage_count_7d: 'recent power outages',
+                        monsoon_season_flag: 'monsoon conditions',
+                        equipment_reliability_score: 'equipment reliability',
+                        days_since_last_maintenance: 'maintenance delays',
+                        stock_utilization_pct: 'stock utilization'
+                      }[location.top_features[1]] || location.top_features[1].replace(/_/g, ' ')
+                    }</strong>.
+                  </div>
+                )}
               </div>
             )}
 
