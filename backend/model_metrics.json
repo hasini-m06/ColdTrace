@@ -17,7 +17,7 @@
     ]
   ],
   "classification_report": "              precision    recall  f1-score   support\n\n           0       0.97      0.99      0.98       428\n           1       0.95      0.83      0.89        72\n\n    accuracy                           0.97       500\n   macro avg       0.96      0.91      0.94       500\nweighted avg       0.97      0.97      0.97       500\n",
-  "trained_at": "2026-06-21T18:02:08.944983Z",
+  "trained_at": "2026-06-21T18:55:56.351998Z",
   "features_used": [
     "historical_wastage_rate",
     "max_forecast_temp_delta_48h",

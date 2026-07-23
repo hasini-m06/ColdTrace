@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+requests
+apscheduler
+scikit-learn
+pandas
+numpy
+joblib
+pyyaml
+beautifulsoup4
+slowapi
+bcrypt
+python-jose[cryptography]
+python-multipart
+email-validator

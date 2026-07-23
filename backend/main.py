@@ -56,7 +56,8 @@ app.include_router(alerts_router)        # /alerts/* (protected)
 # With allow_credentials=True the origin MUST be explicit — no wildcard.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, "http://localhost:5173"],  # explicit, never "*"
+    allow_origins=[FRONTEND_URL, "http://localhost:5173"],  # explicit
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,   # required for cookie-based auth
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
