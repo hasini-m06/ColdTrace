@@ -68,22 +68,39 @@ def extract_features(location, current_temp, temp_delta, wastage_rate, outage_co
     }
 
 
-def get_deterministic_wastage(loc_id: int, base_median: float = 0.05) -> float:
-    # returns a wastage between 0.02 and 0.09 based on location id
-    shift = ((loc_id * 13) % 8) * 0.01
-    return 0.02 + shift
+import math
 
-def get_deterministic_outage(loc_id: int, base_median: int = 2) -> int:
-    # returns outage count between 0 and 4 based on location id
-    return (loc_id * 7) % 5
+def get_deterministic_wastage(loc: dict, base_median: float = 0.05) -> float:
+    # Use latitude to slightly bias wastage (e.g. hotter regions have more wastage)
+    lat_factor = math.sin(loc.get('lat', 0) * 10) * 0.02
+    shift = ((loc['id'] * 13) % 8) * 0.01
+    return max(0.01, base_median + shift + lat_factor)
 
-def get_deterministic_temp_delta(loc_id: int, default_val: float = 5.0) -> float:
-    # returns temp delta between 3.0 and 7.0
-    return 3.0 + ((loc_id * 19) % 6) * 0.8
+def get_deterministic_outage(loc: dict, base_median: int = 2) -> int:
+    # Use longitude and current day to simulate rotating grid outages
+    day_of_year = datetime.now().timetuple().tm_yday
+    val = (loc['id'] * 7 + int(loc.get('lng', 0) * 100) + day_of_year) % 5
+    return val
 
-def get_deterministic_current_temp(loc_id: int, default_val: float = 30.0) -> float:
-    # returns current temp between 24.0 and 32.8
-    return 24.0 + ((loc_id * 23) % 12) * 0.8
+def get_deterministic_temp_delta(loc: dict, default_val: float = 5.0) -> float:
+    # Temp delta usually higher inland. Use time of day for dynamic variance.
+    hour = datetime.now().hour
+    val = 3.0 + ((loc['id'] * 19 + hour) % 6) * 0.8
+    return val
+
+def get_deterministic_current_temp(loc: dict, default_val: float = 30.0) -> float:
+    # Base temperature drops at night, peaks in afternoon
+    hour = datetime.now().hour
+    # sine wave for diurnal temperature (coldest at 4am, hottest at 4pm)
+    diurnal = math.sin((hour - 10) * math.pi / 12) * 5.0 
+    
+    # Latitudinal gradient (closer to equator is hotter)
+    lat_base = 35.0 - (abs(loc.get('lat', 15.0) - 10.0) * 0.5)
+    
+    # Random fixed offset for microclimate
+    micro = ((loc['id'] * 23) % 12) * 0.3 - 1.5
+    
+    return lat_base + diurnal + micro
 
 
 def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
@@ -116,19 +133,19 @@ def train_initial_model(locations, all_wastage, all_outages, all_temp_deltas):
         if dist and dist != 'unknown' and all_wastage and dist in all_wastage:
             wastage = all_wastage[dist]
         else:
-            wastage = get_deterministic_wastage(loc['id'], median_wastage)
+            wastage = get_deterministic_wastage(loc, median_wastage)
 
         if dist and dist != 'unknown' and all_outages and dist in all_outages:
             outage = all_outages[dist]
         else:
-            outage = get_deterministic_outage(loc['id'], median_outage)
+            outage = get_deterministic_outage(loc, median_outage)
 
         if all_temp_deltas and loc['id'] in all_temp_deltas:
             temp_delta = all_temp_deltas[loc['id']]
         else:
-            temp_delta = get_deterministic_temp_delta(loc['id'])
+            temp_delta = get_deterministic_temp_delta(loc)
 
-        current_temp = get_deterministic_current_temp(loc['id'])
+        current_temp = get_deterministic_current_temp(loc)
 
         # Use a fixed equipment score seeded by location id for reproducibility
         equip_score = int((loc['id'] * 37) % 80) + 20  # deterministic 20-100 range

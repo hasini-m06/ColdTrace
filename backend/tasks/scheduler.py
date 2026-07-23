@@ -55,22 +55,22 @@ def run_cycle():
         if dist and dist != 'unknown' and all_wastage and dist in all_wastage:
             wastage = all_wastage[dist]
         else:
-            wastage = get_deterministic_wastage(loc['id'], median_wastage)
+            wastage = get_deterministic_wastage(loc, median_wastage)
 
         if dist and dist != 'unknown' and all_outages and dist in all_outages:
             outage = all_outages[dist]
         else:
-            outage = get_deterministic_outage(loc['id'], median_outage)
+            outage = get_deterministic_outage(loc, median_outage)
 
         if temp_deltas and loc['id'] in temp_deltas:
             temp_delta = temp_deltas[loc['id']]
         else:
-            temp_delta = get_deterministic_temp_delta(loc['id'])
+            temp_delta = get_deterministic_temp_delta(loc)
 
         if current_temps and loc['id'] in current_temps:
             ct = current_temps[loc['id']]
         else:
-            ct = get_deterministic_current_temp(loc['id'])
+            ct = get_deterministic_current_temp(loc)
 
         # Same deterministic formula as pipeline.py training — must match exactly
         equip_score = int((loc['id'] * 37) % 80) + 20
