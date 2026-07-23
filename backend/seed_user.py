@@ -1,9 +1,7 @@
 import sqlite3
 import os
-from passlib.context import CryptContext
 from database.db import get_db, init_db
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from core.security import hash_password
 
 def run_seed():
     print("Running database user seed & wipe...")
@@ -22,7 +20,7 @@ def run_seed():
         # 2. Add eventgridsmiths@gmail.com
         email = "eventgridsmiths@gmail.com"
         password = "ColdTraceDemo123!"
-        hashed_password = pwd_context.hash(password)
+        hashed_password = hash_password(password)
         
         cursor.execute('''
             INSERT INTO users (email, password_hash, is_verified) 
