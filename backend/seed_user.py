@@ -35,8 +35,26 @@ def run_seed():
             VALUES (?, NULL, 'email')
         ''', (user_id,))
         
+        # 4. Add hasini.m.com@gmail.com
+        email2 = "hasini.m.com@gmail.com"
+        password2 = "ghmr12345"
+        hashed_password2 = hash_password(password2)
+        
+        cursor.execute('''
+            INSERT INTO users (email, password_hash, is_verified) 
+            VALUES (?, ?, 1)
+        ''', (email2, hashed_password2))
+        
+        user_id2 = cursor.lastrowid
+        
+        # 5. Subscribe to all alerts
+        cursor.execute('''
+            INSERT INTO alert_preferences (user_id, location_id, channel)
+            VALUES (?, NULL, 'email')
+        ''', (user_id2,))
+        
         conn.commit()
-        print(f"✅ Successfully wiped users and seeded {email} with password: {password}")
+        print(f"✅ Successfully wiped users and seeded {email} and {email2}")
     except Exception as e:
         print(f"Failed to seed user: {e}")
     finally:
