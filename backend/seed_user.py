@@ -54,7 +54,7 @@ def run_seed():
         ''', (user_id2,))
         
         conn.commit()
-        print(f"✅ Successfully wiped users and seeded {email} and {email2}")
+        print(f"Successfully wiped users and seeded {email} and {email2}")
     except Exception as e:
         print(f"Failed to seed user: {e}")
     finally:
