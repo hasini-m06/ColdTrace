@@ -7,49 +7,9 @@
       "config": {
         "distDir": "dist"
       }
-    },
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python"
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/risk-scores(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/history/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/dashboard-summary",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/alert-status",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/model-metrics",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/refresh",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/auth/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/alerts/(.*)",
-      "dest": "/api/index.py"
-    },
     {
       "src": "/assets/(.*)",
       "dest": "/frontend/assets/$1"
@@ -57,12 +17,6 @@
     {
       "src": "/(.*)",
       "dest": "/frontend/index.html"
-    }
-  ],
-  "crons": [
-    {
-      "path": "/refresh",
-      "schedule": "0 * * * *"
     }
   ]
 }
